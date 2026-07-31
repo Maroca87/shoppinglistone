@@ -41,8 +41,8 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: 14px;
+  padding-right: 14px;
   z-index: 100;
 }
 
@@ -57,7 +57,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.5px;
 }
@@ -72,23 +72,24 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .icon-btn {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-full);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
 }
 
 .icon-btn:active {
@@ -98,29 +99,35 @@ body {
   border-color: var(--primary);
 }
 
-/* 3 Navigation Tabs */
+/* 3 Navigation Tabs - No Clipping */
 .app-nav-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   padding-bottom: 10px;
+  width: 100%;
 }
 
 .tab-btn {
-  height: 42px;
+  height: 44px;
+  padding: 0 4px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 .tab-btn.active {
@@ -133,10 +140,11 @@ body {
 .tab-badge {
   background: var(--danger);
   color: #ffffff;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
 
 .tab-btn.active .tab-badge {
@@ -162,6 +170,7 @@ body {
   overflow-x: auto;
   padding-bottom: 2px;
   scrollbar-width: none;
+  width: 100%;
 }
 
 .store-selector-bar::-webkit-scrollbar {
@@ -285,38 +294,14 @@ body {
   background: var(--danger);
 }
 
-/* History Analytics Cards */
-.history-analytics-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.analytics-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 12px;
+/* Controls Row & Full-Width Search Input */
+.controls-row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
+  width: 100%;
 }
 
-.analytics-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.analytics-num {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-/* Search Row & Filter Pills */
 .search-input-wrapper {
   position: relative;
   width: 100%;
@@ -333,7 +318,8 @@ body {
 
 .search-input {
   width: 100%;
-  height: 44px;
+  box-sizing: border-box;
+  height: 46px;
   padding-left: 40px;
   padding-right: 14px;
   border-radius: var(--radius-md);
@@ -356,6 +342,7 @@ body {
   overflow-x: auto;
   padding-bottom: 4px;
   scrollbar-width: none;
+  width: 100%;
 }
 
 .category-filter-pills::-webkit-scrollbar {
@@ -373,6 +360,7 @@ body {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .pill-btn.active {
@@ -639,6 +627,37 @@ body {
   padding-bottom: 0;
 }
 
+/* History Analytics Grid */
+.history-analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.analytics-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.analytics-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.analytics-num {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
 /* Bottom Action Bar */
 .bottom-bar {
   position: fixed;
@@ -790,7 +809,7 @@ body {
   gap: 12px;
 }
 
-/* Auth / Lock Screen Modal */
+/* Auth / Lock Screen Modal - Large Ergonomic Touch Unlock Button */
 .auth-overlay {
   position: fixed;
   top: 0;
@@ -809,7 +828,7 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 32px 24px;
+  padding: 36px 24px;
   width: 100%;
   max-width: 400px;
   box-shadow: var(--shadow-floating);
@@ -817,25 +836,40 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 16px;
+  gap: 18px;
 }
 
 .auth-icon {
-  font-size: 3rem;
+  font-size: 3.2rem;
   background: var(--primary-light);
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.auth-btn-large {
+  height: 54px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  margin-top: 10px;
+}
+
+.auth-btn-large:active {
+  transform: scale(0.95);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
 /* Print PDF styles */
 @media print {
   body {
     background: #ffffff !important;
-    color: #000000 !important;
+    color: #0f172a !important;
     padding: 0 !important;
   }
   .app-header, .bottom-bar, .store-selector-bar, .searchRow, .header-actions, .category-filter-pills, .btn-primary, .btn-secondary, .btn-small {
@@ -846,7 +880,7 @@ body {
     padding: 0 !important;
   }
   .history-card {
-    border: 1px solid #ccc !important;
+    border: 1.5px solid #cbd5e1 !important;
     box-shadow: none !important;
     background: #ffffff !important;
     page-break-inside: avoid;

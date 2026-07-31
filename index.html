@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Smart Shopping List | Multi-Shopping & Historial PWA</title>
-  <meta name="description" content="PWA Multi-tienda (Supermercado, Ferretería, Comercial, Farmacia, Veterinaria) con exportación a PDF, historial de compras y presupuesto.">
+  <title>ShoppingListOne | Multi-Shopping & Historial PWA</title>
+  <meta name="description" content="PWA Multi-tienda (Supermercado, Ferretería, Comercial, Farmacia, Veterinaria) con exportación, historial de compras y presupuesto.">
   
   <!-- PWA & Mobile Meta Tags -->
   <link rel="manifest" href="manifest.json">
@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SmartShop">
+  <meta name="apple-mobile-web-app-title" content="ShoppingListOne">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <!-- Stylesheets -->
@@ -25,19 +25,19 @@
   <div id="authOverlay" class="auth-overlay" style="display: flex;">
     <div class="auth-card">
       <div class="auth-icon">🔒</div>
-      <h2 id="authTitle" class="modal-title">Acceso a SmartShop</h2>
-      <p id="authDesc" style="font-size: 0.85rem; color: var(--text-secondary);">Ingresa tu contraseña para acceder a tu lista de compras.</p>
-      <form id="authForm" style="width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 6px;">
+      <h2 id="authTitle" class="modal-title">ShoppingListOne</h2>
+      <p id="authDesc" style="font-size: 0.88rem; color: var(--text-secondary);">Ingresa tu contraseña para acceder a tus listas.</p>
+      <form id="authForm" style="width: 100%; display: flex; flex-direction: column; gap: 14px; margin-top: 6px;">
         <div id="usernameGroup" class="form-group" style="display: none;">
           <label class="form-label">Nombre de Usuario</label>
           <input type="text" id="authUsername" class="form-control" placeholder="Ej. Marcos" autocomplete="username">
         </div>
         <div class="form-group">
           <label class="form-label">Contraseña / PIN</label>
-          <input type="password" id="authPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+          <input type="password" id="authPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password" style="height: 48px; font-size: 1.1rem; text-align: center;">
         </div>
-        <button type="submit" id="authSubmitBtn" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 6px;">
-          Ingresar
+        <button type="submit" id="authSubmitBtn" class="btn-primary auth-btn-large" style="width: 100%; justify-content: center;">
+          Desbloquear App
         </button>
       </form>
     </div>
@@ -48,7 +48,7 @@
     <div class="header-top">
       <div class="brand-title">
         <img src="icons/apple-touch-icon.png" alt="Logo" class="brand-logo-img">
-        <span id="brandTitleText">SmartShop Multi</span>
+        <span id="brandTitleText">ShoppingListOne</span>
       </div>
       <div class="header-actions">
         <button id="settingsBtn" class="icon-btn" title="Ajustes de la App">⚙️</button>
@@ -159,10 +159,6 @@
         <button class="icon-btn modal-close">✕</button>
       </div>
       <form id="settingsForm" style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="form-group">
-          <label class="form-label">Nombre de la Aplicación</label>
-          <input type="text" id="settingAppName" class="form-control" placeholder="Ej. Mi Lista de Compras" required>
-        </div>
         <div class="form-group">
           <label class="form-label">Símbolo de Moneda</label>
           <select id="settingCurrency" class="form-control">

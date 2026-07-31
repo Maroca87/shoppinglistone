@@ -104,7 +104,7 @@ const HistoryManager = {
     return { totalSpent, totalTrips, avgSpent, topStore };
   },
 
-  // Export history as a beautiful standalone HTML Web Report
+  // Export history as a ultra-legible high-contrast report
   exportToHTML(history) {
     if (!history || history.length === 0) return '';
     const stats = this.calculateStats(history);
@@ -115,23 +115,15 @@ const HistoryManager = {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reporte de Compras | SmartShop PWA</title>
+  <title>Reporte de Compras | ShoppingListOne</title>
   <style>
-    :root {
-      --primary: #6366f1;
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --success: #10b981;
-      --border: #334155;
-    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      background: #ffffff;
+      color: #0f172a;
       margin: 0;
       padding: 24px;
+      line-height: 1.5;
     }
     .container {
       max-width: 800px;
@@ -141,13 +133,14 @@ const HistoryManager = {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 2px solid var(--primary);
+      border-bottom: 3px solid #4f46e5;
       padding-bottom: 16px;
       margin-bottom: 24px;
     }
     .brand {
       font-size: 1.6rem;
-      font-weight: 700;
+      font-weight: 800;
+      color: #1e1b4b;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -159,28 +152,30 @@ const HistoryManager = {
       margin-bottom: 24px;
     }
     .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 14px;
     }
     .stat-title {
       font-size: 0.75rem;
-      color: var(--text-muted);
+      color: #64748b;
       text-transform: uppercase;
+      font-weight: 700;
     }
     .stat-val {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--success);
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #059669;
       margin-top: 4px;
     }
     .trip-card {
-      background: var(--card);
-      border: 1px solid var(--border);
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
       border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 16px;
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
     .trip-header {
       display: flex;
@@ -189,47 +184,46 @@ const HistoryManager = {
       margin-bottom: 8px;
     }
     .trip-store {
-      font-size: 1.1rem;
-      font-weight: 700;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #1e293b;
     }
     .trip-total {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--success);
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #059669;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
-      font-size: 0.88rem;
+      margin-top: 12px;
+      font-size: 0.9rem;
     }
     th, td {
-      padding: 8px 10px;
+      padding: 10px 12px;
       text-align: left;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #e2e8f0;
     }
     th {
-      color: var(--text-muted);
-      font-weight: 600;
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 700;
     }
     .footer {
       text-align: center;
-      margin-top: 32px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-    @media print {
-      body { background: #fff; color: #000; }
-      .stat-card, .trip-card { border-color: #ccc; background: #fff; }
-      .stat-val, .trip-total { color: #000; }
+      margin-top: 36px;
+      font-size: 0.85rem;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="brand">🛒 SmartShop - Reporte de Compras</div>
-      <div style="font-size: 0.85rem; color: var(--text-muted);">Generado el: ${generatedDate}</div>
+      <div class="brand">🛍️ ShoppingListOne - Reporte de Compras</div>
+      <div style="font-size: 0.85rem; color: #64748b;">${generatedDate}</div>
     </div>
 
     <div class="stats-grid">
@@ -239,19 +233,19 @@ const HistoryManager = {
       </div>
       <div class="stat-card">
         <div class="stat-title">Compras Realizadas</div>
-        <div class="stat-val" style="color: var(--primary);">${stats.totalTrips}</div>
+        <div class="stat-val" style="color: #4f46e5;">${stats.totalTrips}</div>
       </div>
       <div class="stat-card">
         <div class="stat-title">Promedio por Viaje</div>
-        <div class="stat-val" style="color: var(--primary);">${StorageManager.formatCurrency(stats.avgSpent)}</div>
+        <div class="stat-val" style="color: #4f46e5;">${StorageManager.formatCurrency(stats.avgSpent)}</div>
       </div>
       <div class="stat-card">
         <div class="stat-title">Comercio Principal</div>
-        <div class="stat-val" style="font-size: 1rem; color: var(--text);">${stats.topStore}</div>
+        <div class="stat-val" style="font-size: 1.05rem; color: #1e293b;">${stats.topStore}</div>
       </div>
     </div>
 
-    <h2 style="font-size: 1.1rem; margin-bottom: 14px;">Detalle de Viajes al Súper y Comercios</h2>
+    <h2 style="font-size: 1.15rem; margin-bottom: 16px; color: #1e293b;">Detalle de Viajes al Súper y Comercios</h2>
 `;
 
     history.forEach(t => {
@@ -261,7 +255,7 @@ const HistoryManager = {
           <div class="trip-store">${t.storeIcon || '🏬'} ${t.storeName}</div>
           <div class="trip-total">${StorageManager.formatCurrency(t.totalSpent)}</div>
         </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">📅 ${t.formattedDate} • ${t.itemCount} productos</div>
+        <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 12px;">📅 ${t.formattedDate} • ${t.itemCount} productos</div>
         <table>
           <thead>
             <tr>
@@ -276,10 +270,10 @@ const HistoryManager = {
       t.items.forEach(i => {
         html += `
             <tr>
-              <td>${i.name}</td>
+              <td style="font-weight: 500;">${i.name}</td>
               <td>${i.quantity} ${i.unit || ''}</td>
               <td>${StorageManager.formatCurrency(i.price)}</td>
-              <td><b>${StorageManager.formatCurrency(i.subtotal)}</b></td>
+              <td><b style="color: #0f172a;">${StorageManager.formatCurrency(i.subtotal)}</b></td>
             </tr>
 `;
       });
@@ -292,7 +286,7 @@ const HistoryManager = {
 
     html += `
     <div class="footer">
-      Smart Shopping List PWA • Reporte de Compras Cifrado
+      ShoppingListOne • Reporte de Compras
     </div>
   </div>
 </body>

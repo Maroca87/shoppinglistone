@@ -1,7 +1,7 @@
 class SmartShoppingApp {
   constructor() {
-    this.appName = 'SmartShop Multi';
-    this.currentStoreId = 'supermercado'; // 'supermercado', 'ferreteria', 'comercial', 'farmacia', 'veterinaria' or custom
+    this.appName = 'ShoppingListOne';
+    this.currentStoreId = 'supermercado';
     this.customStores = {};
     this.catalog = [];
     this.budget = 35000;
@@ -75,7 +75,6 @@ class SmartShoppingApp {
     this.budgetInput = document.getElementById('modalBudgetInput');
 
     this.settingsModal = document.getElementById('settingsModal');
-    this.settingAppNameInput = document.getElementById('settingAppName');
     this.currencySelect = document.getElementById('settingCurrency');
     this.defaultBudgetInput = document.getElementById('settingDefaultBudget');
 
@@ -91,6 +90,9 @@ class SmartShoppingApp {
     this.authUsernameInput = document.getElementById('authUsername');
     this.authPasswordInput = document.getElementById('authPassword');
     this.authSubmitBtn = document.getElementById('authSubmitBtn');
+
+    this.renderStorePills();
+    this.updateStoreCategories();
   }
 
   renderStorePills() {
@@ -230,7 +232,7 @@ class SmartShoppingApp {
     } else {
       const user = AuthManager.getUserConfig();
       this.authTitle.textContent = `Bienvenido, ${user ? user.username : 'Usuario'}`;
-      this.authDesc.textContent = 'Ingresa tu contraseña para descifrar tus compras.';
+      this.authDesc.textContent = 'Ingresa tu contraseña para acceder a ShoppingListOne.';
       this.usernameGroup.style.display = 'none';
       this.authSubmitBtn.textContent = 'Desbloquear App';
       this.authOverlay.style.display = 'flex';
@@ -259,7 +261,7 @@ class SmartShoppingApp {
   async postAuthUnlock() {
     this.authOverlay.style.display = 'none';
     const settings = await StorageManager.loadSettings();
-    this.appName = settings.appName || 'SmartShop Multi';
+    this.appName = 'ShoppingListOne';
     this.brandTitleText.textContent = this.appName;
 
     this.customStores = await StorageManager.loadCustomStores();
@@ -409,22 +411,18 @@ class SmartShoppingApp {
 
   async openSettingsModal() {
     const settings = await StorageManager.loadSettings();
-    this.settingAppNameInput.value = settings.appName || 'SmartShop Multi';
     this.currencySelect.value = settings.currency || '₡';
     this.defaultBudgetInput.value = settings.defaultBudget || 35000;
     this.settingsModal.classList.add('active');
   }
 
   async saveSettings() {
-    const appName = SecurityModule.sanitizeInput(this.settingAppNameInput.value.trim()) || 'SmartShop Multi';
     const currency = this.currencySelect.value || '₡';
     const val = parseFloat(this.defaultBudgetInput.value) || 35000;
 
-    this.appName = appName;
-    this.brandTitleText.textContent = this.appName;
     this.budget = val;
 
-    await StorageManager.saveSettings({ appName, currency, defaultBudget: val });
+    await StorageManager.saveSettings({ appName: 'ShoppingListOne', currency, defaultBudget: val });
     this.closeAllModals();
     this.render();
   }
@@ -470,13 +468,36 @@ class SmartShoppingApp {
     this.render();
   }
 
-  exportPDF() {
+  // Web Share Sheet Export for PDF / Report
+  async shareReport() {
     if (!this.history || this.history.length === 0) {
       alert('El historial está vacío.');
       return;
     }
-    // Triggers native iOS / browser print-to-PDF
-    window.print();
+
+    const htmlReport = HistoryManager.exportToHTML(this.history);
+
+    if (navigator.share) {
+      try {
+        const stats = HistoryManager.calculateStats(this.history);
+        await navigator.share({
+          title: 'Reporte de Compras - ShoppingListOne',
+          text: `📊 Mi Reporte de Compras en ShoppingListOne:\n• Total Gastado: ${StorageManager.formatCurrency(stats.totalSpent)}\n• Compras Realizadas: ${stats.totalTrips}\n• Promedio por viaje: ${StorageManager.formatCurrency(stats.avgSpent)}`
+        });
+      } catch (err) {
+        console.log('Share canceled or not supported:', err);
+      }
+    } else {
+      // Fallback: Download formatted HTML file
+      const blob = new Blob([htmlReport], { type: 'text/html;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `reporte_compras_${new Date().toISOString().slice(0,10)}.html`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
   }
 
   async clearAllHistory() {
@@ -725,8 +746,8 @@ class SmartShoppingApp {
 
   renderHistoryMode() {
     this.bottomBarContent.innerHTML = `
-      <button class="btn-primary" style="flex: 1;" onclick="app.exportPDF()">
-        <span>📄 Exportar a PDF</span>
+      <button class="btn-primary" style="flex: 1;" onclick="app.shareReport()">
+        <span>📤 Compartir Reporte</span>
       </button>
       <button class="btn-secondary" onclick="app.clearAllHistory()" title="Borrar historial">
         <span>🗑️</span>
