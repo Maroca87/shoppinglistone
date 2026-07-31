@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Smart Shopping List | Multi-Shopping, Historial & Seguridad PWA</title>
+  <meta name="description" content="PWA Multi-tienda (Supermercado, Ferretería, Comercial, Farmacia) con cifrado AES-256-GCM, historial de compras y presupuesto en Colones (₡).">
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SmartShop">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Fullscreen Auth / Lock Screen Overlay -->
+  <div id="authOverlay" class="auth-overlay" style="display: flex;">
+    <div class="auth-card">
+      <div class="auth-icon">🔒</div>
+      <h2 id="authTitle" class="modal-title">Seguridad SmartShop</h2>
+      <p id="authDesc" style="font-size: 0.85rem; color: var(--text-secondary);">Ingresa tu clave para descifrar tus compras cifradas con AES-256-GCM.</p>
+      <form id="authForm" style="width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 6px;">
+        <div id="usernameGroup" class="form-group" style="display: none;">
+          <label class="form-label">Nombre de Usuario</label>
+          <input type="text" id="authUsername" class="form-control" placeholder="Ej. Marcos" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña / PIN</label>
+          <input type="password" id="authPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="authSubmitBtn" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 6px;">
+          Ingresar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Fixed App Header with Tabs -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand-title">
+        <span style="font-size: 1.3rem;">🛒</span>
+        <span>SmartShop Multi</span>
+      </div>
+      <div class="header-actions">
+        <button id="addCustomBtn" class="icon-btn" title="Nuevo producto">+ Add</button>
+        <button id="exportBtn" class="icon-btn" title="Exportar o compartir">📤</button>
+        <button id="themeToggleBtn" class="icon-btn" title="Cambiar tema">☀️</button>
+        <button id="logoutBtn" class="icon-btn" title="Bloquear / Cerrar Sesión">🔒</button>
+      </div>
+    </div>
+
+    <!-- 3 Navigation Tabs -->
+    <nav class="app-nav-tabs">
+      <button id="tabCatalog" class="tab-btn active">
+        <span>📋</span>
+        <span>Catálogo</span>
+      </button>
+      <button id="tabShopping" class="tab-btn">
+        <span>🛒</span>
+        <span>Súper</span>
+        <span id="shoppingBadge" class="tab-badge">0</span>
+      </button>
+      <button id="tabHistory" class="tab-btn">
+        <span>📜</span>
+        <span>Historial</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+    
+    <!-- Multi-Store Selector Pills -->
+    <section id="storeSelectorBar" class="store-selector-bar">
+      <!-- Store pills rendered dynamically -->
+    </section>
+
+    <!-- Budget & Spending Summary Card -->
+    <section id="statsCard" class="stats-card">
+      <div class="stats-header">
+        <span class="stats-title">Resumen de Compra de Hoy</span>
+        <span id="budgetBadge" class="budget-badge" title="Toca para ajustar presupuesto">Presupuesto: ₡35,000</span>
+      </div>
+      <div class="stats-numbers">
+        <div class="stat-box">
+          <span class="stat-label">Comprado (Carrito)</span>
+          <span id="spentAmount" class="stat-value spent">₡0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Total Estimado</span>
+          <span id="totalAmount" class="stat-value total">₡0</span>
+        </div>
+      </div>
+      <div class="progress-bar-container">
+        <div id="progressBarFill" class="progress-bar-fill"></div>
+      </div>
+    </section>
+
+    <!-- Search & Category Filters -->
+    <section id="searchRow" class="controls-row">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="Buscar en la tienda actual...">
+      </div>
+      <div id="categoryFilterPills" class="category-filter-pills">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- Dynamic Content Container -->
+    <section id="contentContainer">
+      <!-- Rendered dynamically -->
+    </section>
+
+  </main>
+
+  <!-- Fixed Bottom Bar -->
+  <div id="bottomBar" class="bottom-bar">
+    <div id="bottomBarContent" class="bottom-action-container">
+      <!-- Rendered dynamically -->
+    </div>
+  </div>
+
+  <!-- Price Edit Modal -->
+  <div id="priceModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Editar Precio del Producto</h3>
+        <button class="icon-btn modal-close">✕</button>
+      </div>
+      <p id="priceModalItemName" style="font-weight: 600; color: var(--primary);"></p>
+      <form id="priceForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label">Precio Unitario en Colones (₡)</label>
+          <input type="number" id="modalPriceInput" class="form-control" placeholder="1500" min="0" step="25" required>
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Guardar Precio</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom Item Creation Modal -->
+  <div id="customItemModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Agregar Producto a esta Tienda</h3>
+        <button class="icon-btn modal-close">✕</button>
+      </div>
+      <form id="customItemForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label">Nombre del Producto</label>
+          <input type="text" id="customItemName" class="form-control" required placeholder="Ej. Brocha 2 pulgadas / Cinta teflón">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría</label>
+          <select id="customItemCategory" class="form-control">
+            <!-- Categories options populated dynamically -->
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Precio Estimado (₡)</label>
+            <input type="number" id="customItemPrice" class="form-control" placeholder="1500" min="0" step="50">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cantidad Inicial</label>
+            <input type="number" id="customItemQty" class="form-control" value="1" min="1" step="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unidad de Medida</label>
+          <select id="customItemUnit" class="form-control">
+            <option value="unidad">unidad(es)</option>
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="L">L</option>
+            <option value="ml">ml</option>
+            <option value="pqte">paquete</option>
+            <option value="caja">caja</option>
+            <option value="rollo">rollo</option>
+            <option value="galón">galón</option>
+            <option value="bolsa">bolsa</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top: 10px; width: 100%; justify-content: center;">Guardar en esta Tienda y Seleccionar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Budget Modal -->
+  <div id="budgetModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Ajustar Presupuesto</h3>
+        <button class="icon-btn modal-close">✕</button>
+      </div>
+      <form id="budgetForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label">Límite de Presupuesto en Colones (₡)</label>
+          <input type="number" id="modalBudgetInput" class="form-control" placeholder="35000" min="0" step="500">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Actualizar Presupuesto</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Export/Share Modal -->
+  <div id="exportModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Exportar o Compartir Lista</h3>
+        <button class="icon-btn modal-close">✕</button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-secondary);">Copia el texto de tu lista seleccionada para enviarlo por WhatsApp:</p>
+      <textarea id="exportTextArea" class="form-control" style="height: 160px; font-family: monospace; font-size: 0.85rem;" readonly></textarea>
+      <div style="display: flex; gap: 10px;">
+        <button id="copyTextBtn" class="btn-primary" style="flex: 1; justify-content: center;">📋 Copiar para WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/crypto-security.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/stores-data.js"></script>
+  <script src="js/categories.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/sw-register.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
