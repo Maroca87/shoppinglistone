@@ -47,11 +47,11 @@
   <header class="app-header">
     <div class="header-top">
       <div class="brand-title">
-        <span style="font-size: 1.3rem;">🛒</span>
+        <span style="font-size: 1.3rem;">🛍️</span>
         <span>SmartShop Multi</span>
       </div>
       <div class="header-actions">
-        <button id="addCustomBtn" class="icon-btn" title="Nuevo producto">+ Add</button>
+        <button id="settingsBtn" class="icon-btn" title="Ajustes de la App">⚙️</button>
         <button id="exportBtn" class="icon-btn" title="Exportar o compartir">📤</button>
         <button id="themeToggleBtn" class="icon-btn" title="Cambiar tema">☀️</button>
         <button id="logoutBtn" class="icon-btn" title="Bloquear / Cerrar Sesión">🔒</button>
@@ -127,6 +127,37 @@
   <div id="bottomBar" class="bottom-bar">
     <div id="bottomBarContent" class="bottom-action-container">
       <!-- Rendered dynamically -->
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Ajustes de la Aplicación</h3>
+        <button class="icon-btn modal-close">✕</button>
+      </div>
+      <form id="settingsForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label">Símbolo de Moneda</label>
+          <select id="settingCurrency" class="form-control">
+            <option value="₡">₡ (Colones Costa Rica)</option>
+            <option value="$">$ (Dólares / Pesos)</option>
+            <option value="€">€ (Euros)</option>
+            <option value="MXN">MXN (Pesos Mexicanos)</option>
+            <option value="CLP">CLP (Pesos Chilenos)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Presupuesto por Defecto (₡)</label>
+          <input type="number" id="settingDefaultBudget" class="form-control" placeholder="35000" min="0" step="500">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cifrado de Seguridad</label>
+          <input type="text" class="form-control" value="AES-256-GCM + PBKDF2 (Nactivo WebCrypto)" readonly style="opacity: 0.7;">
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top: 10px; width: 100%; justify-content: center;">Guardar Ajustes</button>
+      </form>
     </div>
   </div>
 

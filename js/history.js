@@ -77,7 +77,6 @@ const HistoryManager = {
     return [];
   },
 
-  // Calculate summary stats for history
   calculateStats(history) {
     if (!history || history.length === 0) {
       return { totalSpent: 0, totalTrips: 0, avgSpent: 0, topStore: 'N/A' };
@@ -87,7 +86,6 @@ const HistoryManager = {
     const totalTrips = history.length;
     const avgSpent = totalSpent / totalTrips;
 
-    // Find top store by expenditure
     const storeTotals = {};
     history.forEach(t => {
       const s = t.storeName || 'Otro';
@@ -103,22 +101,203 @@ const HistoryManager = {
       }
     }
 
-    return {
-      totalSpent,
-      totalTrips,
-      avgSpent,
-      topStore
-    };
+    return { totalSpent, totalTrips, avgSpent, topStore };
   },
 
-  // Export history to CSV format for Excel/Download
-  exportToCSV(history) {
+  // Export history as a beautiful standalone HTML Web Report
+  exportToHTML(history) {
     if (!history || history.length === 0) return '';
-    let csv = 'ID,Fecha,Tienda,Total (CRC),Cant Productos,Productos\n';
+    const stats = this.calculateStats(history);
+    const generatedDate = new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    let html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporte de Compras | SmartShop PWA</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --border: #334155;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .brand {
+      font-size: 1.6rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .stat-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .stat-val {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--success);
+      margin-top: 4px;
+    }
+    .trip-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .trip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .trip-store {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .trip-total {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--success);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 0.88rem;
+    }
+    th, td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    @media print {
+      body { background: #fff; color: #000; }
+      .stat-card, .trip-card { border-color: #ccc; background: #fff; }
+      .stat-val, .trip-total { color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">🛒 SmartShop - Reporte de Compras</div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">Generado el: ${generatedDate}</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Acumulado Total</div>
+        <div class="stat-val">${StorageManager.formatCurrency(stats.totalSpent)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Compras Realizadas</div>
+        <div class="stat-val" style="color: var(--primary);">${stats.totalTrips}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Promedio por Viaje</div>
+        <div class="stat-val" style="color: var(--primary);">${StorageManager.formatCurrency(stats.avgSpent)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Comercio Principal</div>
+        <div class="stat-val" style="font-size: 1rem; color: var(--text);">${stats.topStore}</div>
+      </div>
+    </div>
+
+    <h2 style="font-size: 1.1rem; margin-bottom: 14px;">Detalle de Viajes al Súper y Comercios</h2>
+`;
+
     history.forEach(t => {
-      const itemsStr = t.items.map(i => `${i.name} (${i.quantity} ${i.unit || ''})`).join('; ');
-      csv += `"${t.id}","${t.formattedDate}","${t.storeName}",${t.totalSpent},${t.itemCount},"${itemsStr}"\n`;
+      html += `
+      <div class="trip-card">
+        <div class="trip-header">
+          <div class="trip-store">${t.storeIcon || '🏬'} ${t.storeName}</div>
+          <div class="trip-total">${StorageManager.formatCurrency(t.totalSpent)}</div>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">📅 ${t.formattedDate} • ${t.itemCount} productos</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio Unit.</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+`;
+      t.items.forEach(i => {
+        html += `
+            <tr>
+              <td>${i.name}</td>
+              <td>${i.quantity} ${i.unit || ''}</td>
+              <td>${StorageManager.formatCurrency(i.price)}</td>
+              <td><b>${StorageManager.formatCurrency(i.subtotal)}</b></td>
+            </tr>
+`;
+      });
+      html += `
+          </tbody>
+        </table>
+      </div>
+`;
     });
-    return csv;
+
+    html += `
+    <div class="footer">
+      Smart Shopping List PWA • Reporte de Compras Cifrado
+    </div>
+  </div>
+</body>
+</html>`;
+
+    return html;
   }
 };

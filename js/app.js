@@ -21,7 +21,7 @@ class SmartShoppingApp {
     // Header Actions
     this.themeBtn = document.getElementById('themeToggleBtn');
     this.exportBtn = document.getElementById('exportBtn');
-    this.addCustomBtn = document.getElementById('addCustomBtn');
+    this.settingsBtn = document.getElementById('settingsBtn');
     this.logoutBtn = document.getElementById('logoutBtn');
 
     // Navigation Tabs
@@ -66,6 +66,10 @@ class SmartShoppingApp {
     this.budgetModal = document.getElementById('budgetModal');
     this.budgetInput = document.getElementById('modalBudgetInput');
 
+    this.settingsModal = document.getElementById('settingsModal');
+    this.currencySelect = document.getElementById('settingCurrency');
+    this.defaultBudgetInput = document.getElementById('settingDefaultBudget');
+
     this.exportModal = document.getElementById('exportModal');
     this.exportTextArea = document.getElementById('exportTextArea');
 
@@ -79,13 +83,8 @@ class SmartShoppingApp {
     this.authPasswordInput = document.getElementById('authPassword');
     this.authSubmitBtn = document.getElementById('authSubmitBtn');
 
-    // Populate category dropdown
-    this.customCategorySelect.innerHTML = Object.values(CATEGORIES).map(cat => 
-      `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`
-    ).join('');
-
     this.renderStorePills();
-    this.renderCategoryPills();
+    this.updateStoreCategories();
   }
 
   renderStorePills() {
@@ -100,6 +99,19 @@ class SmartShoppingApp {
       `;
     }
     this.storeSelectorBar.innerHTML = html;
+  }
+
+  updateStoreCategories() {
+    // Set global CATEGORIES context based on current store
+    CATEGORIES = getStoreCategories(this.currentStoreId);
+    this.selectedCatFilter = 'all';
+
+    // Populate custom item modal category select
+    this.customCategorySelect.innerHTML = Object.values(CATEGORIES).map(cat => 
+      `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`
+    ).join('');
+
+    this.renderCategoryPills();
   }
 
   renderCategoryPills() {
@@ -145,7 +157,7 @@ class SmartShoppingApp {
     // Header buttons
     this.themeBtn.addEventListener('click', () => this.toggleTheme());
     this.exportBtn.addEventListener('click', () => this.openExportModal());
-    this.addCustomBtn.addEventListener('click', () => this.openCustomItemModal());
+    this.settingsBtn.addEventListener('click', () => this.openSettingsModal());
     this.logoutBtn.addEventListener('click', () => AuthManager.logout());
     this.budgetBadge.addEventListener('click', () => this.openBudgetModal());
 
@@ -180,6 +192,11 @@ class SmartShoppingApp {
         this.closeAllModals();
         this.render();
       }
+    });
+
+    document.getElementById('settingsForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveSettings();
     });
 
     // Auth Form
@@ -243,6 +260,7 @@ class SmartShoppingApp {
   async switchStore(storeId) {
     this.currentStoreId = storeId;
     this.renderStorePills();
+    this.updateStoreCategories();
     this.catalog = await StorageManager.loadCatalog(this.currentStoreId);
     this.render();
   }
@@ -325,7 +343,7 @@ class SmartShoppingApp {
     const name = SecurityModule.sanitizeInput(this.customNameInput.value.trim());
     if (!name) return;
 
-    const detectedCat = this.customCategorySelect.value || autoDetectCategory(name);
+    const detectedCat = this.customCategorySelect.value || autoDetectCategory(name, this.currentStoreId);
     const newItem = {
       id: 'custom_' + Date.now().toString(36),
       name: name,
@@ -345,6 +363,21 @@ class SmartShoppingApp {
   openBudgetModal() {
     this.budgetInput.value = this.budget;
     this.budgetModal.classList.add('active');
+  }
+
+  openSettingsModal() {
+    this.defaultBudgetInput.value = this.budget;
+    this.settingsModal.classList.add('active');
+  }
+
+  async saveSettings() {
+    const val = parseFloat(this.defaultBudgetInput.value);
+    if (!isNaN(val) && val >= 0) {
+      this.budget = val;
+      await StorageManager.saveBudget(val);
+    }
+    this.closeAllModals();
+    this.render();
   }
 
   openExportModal() {
@@ -388,17 +421,17 @@ class SmartShoppingApp {
     this.render();
   }
 
-  downloadHistoryCSV() {
-    const csvContent = HistoryManager.exportToCSV(this.history);
-    if (!csvContent) {
+  downloadHistoryHTML() {
+    const htmlReport = HistoryManager.exportToHTML(this.history);
+    if (!htmlReport) {
       alert('El historial está vacío.');
       return;
     }
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([htmlReport], { type: 'text/html;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `historial_compras_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute('download', `reporte_compras_${new Date().toISOString().slice(0,10)}.html`);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -470,7 +503,7 @@ class SmartShoppingApp {
     this.bottomBarContent.innerHTML = `
       <button class="btn-primary" onclick="app.openCustomItemModal()">
         <span>+</span>
-        <span>Añadir a ${storeInfo.name}</span>
+        <span>Añadir Producto a ${storeInfo.name}</span>
       </button>
       ${selectedCount > 0 ? `
         <button class="btn-secondary" onclick="app.switchMode('shopping')">
@@ -492,7 +525,7 @@ class SmartShoppingApp {
         <div class="empty-state">
           <span class="empty-icon">${storeInfo.icon}</span>
           <span class="empty-title">Catálogo de ${storeInfo.name}</span>
-          <span class="empty-desc">No se encontraron productos. Crea un producto nuevo con el botón "+ Añadir".</span>
+          <span class="empty-desc">No se encontraron productos. Crea un producto nuevo con el botón inferior.</span>
         </div>
       `;
       return;
@@ -650,8 +683,8 @@ class SmartShoppingApp {
 
   renderHistoryMode() {
     this.bottomBarContent.innerHTML = `
-      <button class="btn-primary" style="flex: 1;" onclick="app.downloadHistoryCSV()">
-        <span>📊 Exportar Excel (CSV)</span>
+      <button class="btn-primary" style="flex: 1;" onclick="app.downloadHistoryHTML()">
+        <span>🌐 Exportar Reporte HTML Web</span>
       </button>
       <button class="btn-secondary" onclick="app.clearAllHistory()" title="Borrar historial">
         <span>🗑️</span>
@@ -671,7 +704,6 @@ class SmartShoppingApp {
 
     const stats = HistoryManager.calculateStats(this.history);
 
-    // Filter history by store if selected
     let filteredHistory = this.history;
     if (this.selectedHistoryStoreFilter !== 'all') {
       filteredHistory = this.history.filter(t => t.storeId === this.selectedHistoryStoreFilter);
