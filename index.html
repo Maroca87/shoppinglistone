@@ -39,6 +39,9 @@
         <button type="submit" id="authSubmitBtn" class="btn-primary auth-btn-large" style="width: 100%; justify-content: center;">
           Desbloquear App
         </button>
+        <button type="button" id="forgotPwdBtn" class="pill-btn" style="border: none; background: transparent; color: var(--text-muted); font-size: 0.8rem; margin-top: 6px; cursor: pointer;">
+          ¿Olvidaste tu contraseña? Restablecer App
+        </button>
       </form>
     </div>
   </div>
@@ -151,7 +154,7 @@
     </div>
   </div>
 
-  <!-- Settings Modal -->
+  <!-- Settings Modal with Change Password Section -->
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -173,8 +176,30 @@
           <label class="form-label">Presupuesto por Defecto (₡)</label>
           <input type="number" id="settingDefaultBudget" class="form-control" placeholder="35000" min="0" step="500">
         </div>
-        <button type="submit" class="btn-primary" style="margin-top: 10px; width: 100%; justify-content: center;">Guardar Ajustes</button>
+        <button type="submit" class="btn-primary" style="margin-top: 4px; width: 100%; justify-content: center;">Guardar Ajustes de Preferencias</button>
       </form>
+
+      <!-- Change Password Form Section -->
+      <div style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 10px;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; color: var(--text-primary);">🔒 Cambiar Contraseña / PIN</h4>
+        <form id="changePwdForm" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">Contraseña Actual</label>
+            <input type="password" id="pwdCurrent" class="form-control" placeholder="••••••••" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nueva Contraseña</label>
+              <input type="password" id="pwdNew" class="form-control" placeholder="••••••••" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirmar Nueva</label>
+              <input type="password" id="pwdConfirm" class="form-control" placeholder="••••••••" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-secondary" style="width: 100%; justify-content: center; font-weight: 700;">Actualizar Contraseña</button>
+        </form>
+      </div>
     </div>
   </div>
 

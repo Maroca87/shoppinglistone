@@ -77,6 +77,10 @@ class SmartShoppingApp {
     this.settingsModal = document.getElementById('settingsModal');
     this.currencySelect = document.getElementById('settingCurrency');
     this.defaultBudgetInput = document.getElementById('settingDefaultBudget');
+    this.changePwdForm = document.getElementById('changePwdForm');
+    this.currentPwdInput = document.getElementById('pwdCurrent');
+    this.newPwdInput = document.getElementById('pwdNew');
+    this.confirmPwdInput = document.getElementById('pwdConfirm');
 
     this.exportModal = document.getElementById('exportModal');
     this.exportTextArea = document.getElementById('exportTextArea');
@@ -90,6 +94,7 @@ class SmartShoppingApp {
     this.authUsernameInput = document.getElementById('authUsername');
     this.authPasswordInput = document.getElementById('authPassword');
     this.authSubmitBtn = document.getElementById('authSubmitBtn');
+    this.forgotPwdBtn = document.getElementById('forgotPwdBtn');
 
     this.renderStorePills();
     this.updateStoreCategories();
@@ -209,9 +214,18 @@ class SmartShoppingApp {
       this.saveSettings();
     });
 
+    this.changePwdForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handlePasswordChange();
+    });
+
     this.authForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.handleAuthSubmit();
+    });
+
+    this.forgotPwdBtn.addEventListener('click', () => {
+      this.handleResetPassword();
     });
 
     document.getElementById('copyTextBtn').addEventListener('click', () => {
@@ -228,6 +242,7 @@ class SmartShoppingApp {
       this.authDesc.textContent = 'Establece tu usuario y contraseña para cifrar localmente tus compras.';
       this.usernameGroup.style.display = 'flex';
       this.authSubmitBtn.textContent = 'Registrar y Cifrar App';
+      this.forgotPwdBtn.style.display = 'none';
       this.authOverlay.style.display = 'flex';
     } else {
       const user = AuthManager.getUserConfig();
@@ -235,6 +250,7 @@ class SmartShoppingApp {
       this.authDesc.textContent = 'Ingresa tu contraseña para acceder a ShoppingListOne.';
       this.usernameGroup.style.display = 'none';
       this.authSubmitBtn.textContent = 'Desbloquear App';
+      this.forgotPwdBtn.style.display = 'block';
       this.authOverlay.style.display = 'flex';
     }
   }
@@ -255,6 +271,42 @@ class SmartShoppingApp {
         alert('Contraseña incorrecta. Intenta nuevamente.');
         this.authPasswordInput.value = '';
       }
+    }
+  }
+
+  handleResetPassword() {
+    const answer = prompt('⚠️ RESTABLECER CONTRASEÑA:\nAl restablecer tu contraseña se borrarán los datos locales cifrados por seguridad.\n\nEscribe "RESET" para confirmar y registrar una nueva contraseña:');
+    if (answer && answer.trim().toUpperCase() === 'RESET') {
+      AuthManager.resetAccount();
+    }
+  }
+
+  async handlePasswordChange() {
+    const current = this.currentPwdInput.value;
+    const newPwd = this.newPwdInput.value;
+    const confirmPwd = this.confirmPwdInput.value;
+
+    if (!current || !newPwd) {
+      alert('Ingresa tu contraseña actual y la nueva.');
+      return;
+    }
+
+    if (newPwd !== confirmPwd) {
+      alert('La nueva contraseña y la confirmación no coinciden.');
+      return;
+    }
+
+    const res = await AuthManager.changePassword(current, newPwd);
+    if (res.success) {
+      // Re-save catalog and data with new key
+      await this.saveAndRender();
+      alert(res.message);
+      this.currentPwdInput.value = '';
+      this.newPwdInput.value = '';
+      this.confirmPwdInput.value = '';
+      this.closeAllModals();
+    } else {
+      alert(res.message);
     }
   }
 
@@ -468,7 +520,6 @@ class SmartShoppingApp {
     this.render();
   }
 
-  // Web Share Sheet Export for PDF / Report
   async shareReport() {
     if (!this.history || this.history.length === 0) {
       alert('El historial está vacío.');
@@ -488,7 +539,6 @@ class SmartShoppingApp {
         console.log('Share canceled or not supported:', err);
       }
     } else {
-      // Fallback: Download formatted HTML file
       const blob = new Blob([htmlReport], { type: 'text/html;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');

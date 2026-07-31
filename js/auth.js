@@ -27,7 +27,6 @@ const AuthManager = {
 
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userConfig));
 
-    // Derive active key for session
     this.activeCryptoKey = await SecurityModule.deriveKey(password, salt);
     this.activeUsername = userConfig.username;
     this.resetInactivityTimer();
@@ -50,6 +49,40 @@ const AuthManager = {
     return false;
   },
 
+  async changePassword(currentPassword, newPassword) {
+    const userConfig = this.getUserConfig();
+    if (!userConfig) return false;
+
+    // Verify current password first
+    const hashCheck = await SecurityModule.hashPassword(currentPassword, userConfig.salt);
+    if (hashCheck !== userConfig.passwordHash) {
+      return { success: false, message: 'La contraseña actual es incorrecta.' };
+    }
+
+    // Generate new salt & hash for new password
+    const newSalt = SecurityModule.generateSalt();
+    const newHash = await SecurityModule.hashPassword(newPassword, newSalt);
+    const newKey = await SecurityModule.deriveKey(newPassword, newSalt);
+
+    userConfig.salt = newSalt;
+    userConfig.passwordHash = newHash;
+
+    // Update state
+    this.activeCryptoKey = newKey;
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userConfig));
+
+    return { success: true, message: '¡Contraseña actualizada con éxito!' };
+  },
+
+  // Secure Factory Reset to reset password
+  resetAccount() {
+    localStorage.clear();
+    this.activeCryptoKey = null;
+    this.activeUsername = null;
+    if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+    window.location.reload();
+  },
+
   logout() {
     this.activeCryptoKey = null;
     this.activeUsername = null;
@@ -59,16 +92,15 @@ const AuthManager = {
 
   resetInactivityTimer() {
     if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
-    // Auto lock after 15 minutes of inactivity
     this.inactivityTimer = setTimeout(() => {
-      alert('Sesión cerrada por inactividad por tu seguridad.');
+      alert('Sesión cerrada por inactividad.');
       this.logout();
     }, 15 * 60 * 1000);
   }
 };
 
-// Activity listeners to reset idle timer
-['click', 'touchstart', 'keypress', 'mousemove'].forEach(evt => {
+// Reset inactivity on user interaction
+['click', 'touchstart', 'keypress'].forEach(evt => {
   window.addEventListener(evt, () => {
     if (AuthManager.activeCryptoKey) {
       AuthManager.resetInactivityTimer();
