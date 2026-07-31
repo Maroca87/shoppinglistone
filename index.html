@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Smart Shopping List | Multi-Shopping, Historial & Seguridad PWA</title>
-  <meta name="description" content="PWA Multi-tienda (Supermercado, Ferretería, Comercial, Farmacia) con cifrado AES-256-GCM, historial de compras y presupuesto en Colones (₡).">
+  <title>Smart Shopping List | Multi-Shopping & Historial PWA</title>
+  <meta name="description" content="PWA Multi-tienda (Supermercado, Ferretería, Comercial, Farmacia, Veterinaria) con exportación a PDF, historial de compras y presupuesto.">
   
   <!-- PWA & Mobile Meta Tags -->
   <link rel="manifest" href="manifest.json">
@@ -25,8 +25,8 @@
   <div id="authOverlay" class="auth-overlay" style="display: flex;">
     <div class="auth-card">
       <div class="auth-icon">🔒</div>
-      <h2 id="authTitle" class="modal-title">Seguridad SmartShop</h2>
-      <p id="authDesc" style="font-size: 0.85rem; color: var(--text-secondary);">Ingresa tu clave para descifrar tus compras cifradas con AES-256-GCM.</p>
+      <h2 id="authTitle" class="modal-title">Acceso a SmartShop</h2>
+      <p id="authDesc" style="font-size: 0.85rem; color: var(--text-secondary);">Ingresa tu contraseña para acceder a tu lista de compras.</p>
       <form id="authForm" style="width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 6px;">
         <div id="usernameGroup" class="form-group" style="display: none;">
           <label class="form-label">Nombre de Usuario</label>
@@ -47,8 +47,8 @@
   <header class="app-header">
     <div class="header-top">
       <div class="brand-title">
-        <span style="font-size: 1.3rem;">🛍️</span>
-        <span>SmartShop Multi</span>
+        <img src="icons/apple-touch-icon.png" alt="Logo" class="brand-logo-img">
+        <span id="brandTitleText">SmartShop Multi</span>
       </div>
       <div class="header-actions">
         <button id="settingsBtn" class="icon-btn" title="Ajustes de la App">⚙️</button>
@@ -66,7 +66,7 @@
       </button>
       <button id="tabShopping" class="tab-btn">
         <span>🛒</span>
-        <span>Súper</span>
+        <span>Compras</span>
         <span id="shoppingBadge" class="tab-badge">0</span>
       </button>
       <button id="tabHistory" class="tab-btn">
@@ -130,6 +130,27 @@
     </div>
   </div>
 
+  <!-- New Custom Store Modal -->
+  <div id="newStoreModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ Crear Nuevo Tipo de Tienda</h3>
+        <button class="icon-btn modal-close">✕</button>
+      </div>
+      <form id="newStoreForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label">Nombre de la Tienda / Comercio</label>
+          <input type="text" id="newStoreName" class="form-control" placeholder="Ej. Veterinaria, Mascotas, Librería, Zapatería..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Emoji / Icono Representativo</label>
+          <input type="text" id="newStoreIcon" class="form-control" value="🐶" placeholder="Ej. 🐶, 📚, 🚗, 🏡, 🛠️" required>
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Crear Tienda</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-card">
@@ -138,6 +159,10 @@
         <button class="icon-btn modal-close">✕</button>
       </div>
       <form id="settingsForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label">Nombre de la Aplicación</label>
+          <input type="text" id="settingAppName" class="form-control" placeholder="Ej. Mi Lista de Compras" required>
+        </div>
         <div class="form-group">
           <label class="form-label">Símbolo de Moneda</label>
           <select id="settingCurrency" class="form-control">
@@ -151,10 +176,6 @@
         <div class="form-group">
           <label class="form-label">Presupuesto por Defecto (₡)</label>
           <input type="number" id="settingDefaultBudget" class="form-control" placeholder="35000" min="0" step="500">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cifrado de Seguridad</label>
-          <input type="text" class="form-control" value="AES-256-GCM + PBKDF2 (Nactivo WebCrypto)" readonly style="opacity: 0.7;">
         </div>
         <button type="submit" class="btn-primary" style="margin-top: 10px; width: 100%; justify-content: center;">Guardar Ajustes</button>
       </form>
@@ -189,7 +210,7 @@
       <form id="customItemForm" style="display: flex; flex-direction: column; gap: 14px;">
         <div class="form-group">
           <label class="form-label">Nombre del Producto</label>
-          <input type="text" id="customItemName" class="form-control" required placeholder="Ej. Brocha 2 pulgadas / Cinta teflón">
+          <input type="text" id="customItemName" class="form-control" required placeholder="Ej. Alimento para perro / Brocha 2 pulgadas">
         </div>
         <div class="form-group">
           <label class="form-label">Categoría</label>

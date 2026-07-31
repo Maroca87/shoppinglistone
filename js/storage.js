@@ -1,19 +1,47 @@
 const ENCRYPTED_STORES_PREFIX = 'smart_shop_store_encrypted_v3_';
-const ENCRYPTED_BUDGET_KEY = 'smart_shop_budget_encrypted_v3';
+const ENCRYPTED_CUSTOM_STORES_KEY = 'smart_shop_custom_stores_v1';
+const ENCRYPTED_APP_SETTINGS_KEY = 'smart_shop_app_settings_v1';
 
 const StorageManager = {
+  activeCurrency: '₡',
+
   formatCurrency(amount) {
     const val = Number(amount) || 0;
-    return '₡' + val.toLocaleString('es-CR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const curr = this.activeCurrency || '₡';
+    return curr + ' ' + val.toLocaleString('es-CR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
 
-  // Load catalog for a specific store (encrypted with AES-256-GCM)
+  async loadCustomStores() {
+    try {
+      const encrypted = localStorage.getItem(ENCRYPTED_CUSTOM_STORES_KEY);
+      if (encrypted && AuthManager.activeCryptoKey) {
+        const payloadObj = JSON.parse(encrypted);
+        const decrypted = await SecurityModule.decryptData(payloadObj, AuthManager.activeCryptoKey);
+        return decrypted || {};
+      }
+      return {};
+    } catch (e) {
+      return {};
+    }
+  },
+
+  async saveCustomStores(customStoresMap) {
+    try {
+      if (AuthManager.activeCryptoKey) {
+        const encrypted = await SecurityModule.encryptData(customStoresMap, AuthManager.activeCryptoKey);
+        localStorage.setItem(ENCRYPTED_CUSTOM_STORES_KEY, JSON.stringify(encrypted));
+      }
+    } catch (e) {
+      console.error('Error saving custom stores:', e);
+    }
+  },
+
   async loadCatalog(storeId = 'supermercado') {
     try {
       const keyName = ENCRYPTED_STORES_PREFIX + storeId;
       const encryptedPayload = localStorage.getItem(keyName);
-      
-      const defaultStoreItems = MULTI_STORE_CATALOGS[storeId] || MULTI_STORE_CATALOGS.supermercado;
+
+      const defaultStoreItems = MULTI_STORE_CATALOGS[storeId] || [];
 
       if (!encryptedPayload) {
         const initial = defaultStoreItems.map(item => ({
@@ -35,12 +63,11 @@ const StorageManager = {
       return defaultStoreItems.map(item => ({ ...item, selected: false, completed: false, quantity: 1 }));
     } catch (e) {
       console.error('Error loading encrypted store catalog:', e);
-      const defaultStoreItems = MULTI_STORE_CATALOGS[storeId] || MULTI_STORE_CATALOGS.supermercado;
+      const defaultStoreItems = MULTI_STORE_CATALOGS[storeId] || [];
       return defaultStoreItems.map(item => ({ ...item, selected: false, completed: false, quantity: 1 }));
     }
   },
 
-  // Save catalog for a specific store (encrypted with AES-256-GCM)
   async saveCatalog(storeId, catalog) {
     try {
       if (AuthManager.activeCryptoKey) {
@@ -53,29 +80,46 @@ const StorageManager = {
     }
   },
 
-  async loadBudget() {
+  async loadSettings() {
     try {
-      const encryptedPayload = localStorage.getItem(ENCRYPTED_BUDGET_KEY);
-      if (encryptedPayload && AuthManager.activeCryptoKey) {
-        const payloadObj = JSON.parse(encryptedPayload);
+      const encrypted = localStorage.getItem(ENCRYPTED_APP_SETTINGS_KEY);
+      if (encrypted && AuthManager.activeCryptoKey) {
+        const payloadObj = JSON.parse(encrypted);
         const decrypted = await SecurityModule.decryptData(payloadObj, AuthManager.activeCryptoKey);
-        if (decrypted && decrypted.budget) return decrypted.budget;
+        if (decrypted) {
+          if (decrypted.currency) this.activeCurrency = decrypted.currency;
+          return decrypted;
+        }
       }
-      return 35000;
+      return { appName: 'SmartShop Multi', currency: '₡', defaultBudget: 35000 };
     } catch (e) {
-      return 35000;
+      return { appName: 'SmartShop Multi', currency: '₡', defaultBudget: 35000 };
     }
   },
 
-  async saveBudget(amount) {
+  async saveSettings(settingsObj) {
     try {
+      if (settingsObj && settingsObj.currency) {
+        this.activeCurrency = settingsObj.currency;
+      }
       if (AuthManager.activeCryptoKey) {
-        const encrypted = await SecurityModule.encryptData({ budget: amount }, AuthManager.activeCryptoKey);
-        localStorage.setItem(ENCRYPTED_BUDGET_KEY, JSON.stringify(encrypted));
+        const encrypted = await SecurityModule.encryptData(settingsObj, AuthManager.activeCryptoKey);
+        localStorage.setItem(ENCRYPTED_APP_SETTINGS_KEY, JSON.stringify(encrypted));
       }
     } catch (e) {
-      console.error('Error saving budget:', e);
+      console.error('Error saving settings:', e);
     }
+  },
+
+  async loadBudget() {
+    const settings = await this.loadSettings();
+    return settings.defaultBudget || 35000;
+  },
+
+  async saveBudget(amount) {
+    const settings = await this.loadSettings();
+    settings.defaultBudget = amount;
+    await this.saveSettings(settings);
   },
 
   async resetShoppingTrip(storeId, catalog, keepSelected = false) {
@@ -93,7 +137,7 @@ const StorageManager = {
     const selectedItems = catalog.filter(i => i.selected);
     if (selectedItems.length === 0) return `No tienes productos seleccionados en ${storeInfo.name}.`;
 
-    let text = `${storeInfo.icon} *LISTA DE COMPRAS - ${storeInfo.name.toUpperCase()} (COLONES ₡)*\n`;
+    let text = `${storeInfo.icon} *LISTA DE COMPRAS - ${storeInfo.name.toUpperCase()}*\n`;
     text += '───────────────\n\n';
 
     const grouped = {};
@@ -103,8 +147,9 @@ const StorageManager = {
       grouped[cat].push(item);
     });
 
+    const storeCats = getStoreCategories(storeId);
     for (const [catId, catItems] of Object.entries(grouped)) {
-      const categoryData = CATEGORIES[catId] || CATEGORIES.otros;
+      const categoryData = storeCats[catId] || storeCats.otros || { icon: '📦', name: 'Otros' };
       text += `${categoryData.icon} *${categoryData.name}*\n`;
       catItems.forEach(item => {
         const check = item.completed ? '✅' : '◻️';

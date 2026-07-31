@@ -32,23 +32,39 @@ const STORE_CATEGORIES = {
     cuidado: { id: 'cuidado', name: 'Cuidado e Higiene', icon: '🧴', color: '#06b6d4' },
     salud: { id: 'salud', name: 'Salud y Vitaminas', icon: '🧪', color: '#8b5cf6' },
     otros: { id: 'otros', name: 'Otros Farmacéuticos', icon: '📦', color: '#64748b' }
+  },
+  veterinaria: {
+    alimentos: { id: 'alimentos', name: 'Alimentos y Croquetas', icon: '🦴', color: '#10b981' },
+    medicamentos: { id: 'medicamentos', name: 'Medicamentos Veterinaria', icon: '💉', color: '#ef4444' },
+    higiene: { id: 'higiene', name: 'Higiene y Estética', icon: '🛁', color: '#06b6d4' },
+    juguetes: { id: 'juguetes', name: 'Juguetes y Accesorios', icon: '🎾', color: '#f59e0b' },
+    otros: { id: 'otros', name: 'Otros Mascotas', icon: '🐾', color: '#64748b' }
   }
 };
 
-// Global CATEGORIES fallback pointing to current store categories
+const DEFAULT_CUSTOM_STORE_CATEGORIES = {
+  general: { id: 'general', name: 'General', icon: '📦', color: '#6366f1' },
+  urgente: { id: 'urgente', name: 'Urgente', icon: '🚨', color: '#ef4444' },
+  otros: { id: 'otros', name: 'Otros', icon: '📑', color: '#64748b' }
+};
+
 let CATEGORIES = STORE_CATEGORIES.supermercado;
 
 function getStoreCategories(storeId) {
-  return STORE_CATEGORIES[storeId] || STORE_CATEGORIES.supermercado;
+  return STORE_CATEGORIES[storeId] || DEFAULT_CUSTOM_STORE_CATEGORIES;
 }
 
-/**
- * Detects category automatically based on item name keywords
- */
 function autoDetectCategory(itemName, storeId = 'supermercado') {
   if (!itemName) return 'otros';
   const cleanName = itemName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   
+  if (storeId === 'veterinaria') {
+    if (cleanName.includes('alimento') || cleanName.includes('comida') || cleanName.includes('snack') || cleanName.includes('premio')) return 'alimentos';
+    if (cleanName.includes('vacuna') || cleanName.includes('desparasitante') || cleanName.includes('pastilla')) return 'medicamentos';
+    if (cleanName.includes('arena') || cleanName.includes('shampoo') || cleanName.includes('champu')) return 'higiene';
+    return 'otros';
+  }
+
   if (storeId === 'ferreteria') {
     if (cleanName.includes('martillo') || cleanName.includes('brocha') || cleanName.includes('lija')) return 'herramientas';
     if (cleanName.includes('clavo') || cleanName.includes('tornillo')) return 'fijaciones';
@@ -72,7 +88,6 @@ function autoDetectCategory(itemName, storeId = 'supermercado') {
     return 'otros';
   }
 
-  // Supermarket keywords
   if (cleanName.includes('leche') || cleanName.includes('queso') || cleanName.includes('huevo') || cleanName.includes('natilla') || cleanName.includes('yogurt')) return 'lacteos';
   if (cleanName.includes('manzana') || cleanName.includes('banano') || cleanName.includes('tomate') || cleanName.includes('cebolla') || cleanName.includes('aguacate') || cleanName.includes('limon')) return 'frutas';
   if (cleanName.includes('pollo') || cleanName.includes('carne') || cleanName.includes('atun') || cleanName.includes('cerdo')) return 'carnes';

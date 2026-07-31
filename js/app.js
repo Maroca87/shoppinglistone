@@ -1,6 +1,8 @@
 class SmartShoppingApp {
   constructor() {
-    this.currentStoreId = 'supermercado'; // 'supermercado', 'ferreteria', 'comercial', 'farmacia'
+    this.appName = 'SmartShop Multi';
+    this.currentStoreId = 'supermercado'; // 'supermercado', 'ferreteria', 'comercial', 'farmacia', 'veterinaria' or custom
+    this.customStores = {};
     this.catalog = [];
     this.budget = 35000;
     this.history = [];
@@ -18,7 +20,8 @@ class SmartShoppingApp {
   }
 
   initElements() {
-    // Header Actions
+    // Header Elements
+    this.brandTitleText = document.getElementById('brandTitleText');
     this.themeBtn = document.getElementById('themeToggleBtn');
     this.exportBtn = document.getElementById('exportBtn');
     this.settingsBtn = document.getElementById('settingsBtn');
@@ -58,6 +61,11 @@ class SmartShoppingApp {
     this.customQtyInput = document.getElementById('customItemQty');
     this.customUnitSelect = document.getElementById('customItemUnit');
 
+    this.newStoreModal = document.getElementById('newStoreModal');
+    this.newStoreForm = document.getElementById('newStoreForm');
+    this.newStoreNameInput = document.getElementById('newStoreName');
+    this.newStoreIconInput = document.getElementById('newStoreIcon');
+
     this.priceModal = document.getElementById('priceModal');
     this.priceForm = document.getElementById('priceForm');
     this.modalPriceInput = document.getElementById('modalPriceInput');
@@ -67,6 +75,7 @@ class SmartShoppingApp {
     this.budgetInput = document.getElementById('modalBudgetInput');
 
     this.settingsModal = document.getElementById('settingsModal');
+    this.settingAppNameInput = document.getElementById('settingAppName');
     this.currencySelect = document.getElementById('settingCurrency');
     this.defaultBudgetInput = document.getElementById('settingDefaultBudget');
 
@@ -82,9 +91,6 @@ class SmartShoppingApp {
     this.authUsernameInput = document.getElementById('authUsername');
     this.authPasswordInput = document.getElementById('authPassword');
     this.authSubmitBtn = document.getElementById('authSubmitBtn');
-
-    this.renderStorePills();
-    this.updateStoreCategories();
   }
 
   renderStorePills() {
@@ -98,15 +104,19 @@ class SmartShoppingApp {
         </button>
       `;
     }
+    html += `
+      <button class="store-pill add-store-btn" onclick="app.openNewStoreModal()">
+        <span>+</span>
+        <span>Nueva Tienda</span>
+      </button>
+    `;
     this.storeSelectorBar.innerHTML = html;
   }
 
   updateStoreCategories() {
-    // Set global CATEGORIES context based on current store
     CATEGORIES = getStoreCategories(this.currentStoreId);
     this.selectedCatFilter = 'all';
 
-    // Populate custom item modal category select
     this.customCategorySelect.innerHTML = Object.values(CATEGORIES).map(cat => 
       `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`
     ).join('');
@@ -123,28 +133,24 @@ class SmartShoppingApp {
   }
 
   initEvents() {
-    // Store Switcher click
     this.storeSelectorBar.addEventListener('click', async (e) => {
       const pill = e.target.closest('.store-pill');
-      if (!pill) return;
+      if (!pill || pill.classList.contains('add-store-btn')) return;
       const targetStoreId = pill.dataset.store;
       if (targetStoreId !== this.currentStoreId) {
         await this.switchStore(targetStoreId);
       }
     });
 
-    // Mode Switch Tabs
     this.tabCatalog.addEventListener('click', () => this.switchMode('catalog'));
     this.tabShopping.addEventListener('click', () => this.switchMode('shopping'));
     this.tabHistory.addEventListener('click', () => this.switchMode('history'));
 
-    // Search
     this.searchInput.addEventListener('input', (e) => {
       this.searchTerm = SecurityModule.sanitizeInput(e.target.value.toLowerCase().trim());
       this.render();
     });
 
-    // Category Filter Pills
     this.categoryFilterPills.addEventListener('click', (e) => {
       const btn = e.target.closest('.pill-btn');
       if (!btn) return;
@@ -154,14 +160,12 @@ class SmartShoppingApp {
       this.render();
     });
 
-    // Header buttons
     this.themeBtn.addEventListener('click', () => this.toggleTheme());
     this.exportBtn.addEventListener('click', () => this.openExportModal());
     this.settingsBtn.addEventListener('click', () => this.openSettingsModal());
     this.logoutBtn.addEventListener('click', () => AuthManager.logout());
     this.budgetBadge.addEventListener('click', () => this.openBudgetModal());
 
-    // Modal Close
     document.querySelectorAll('.modal-close').forEach(btn => {
       btn.addEventListener('click', () => this.closeAllModals());
     });
@@ -172,10 +176,14 @@ class SmartShoppingApp {
       });
     });
 
-    // Forms
     this.customItemForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.addCustomItem();
+    });
+
+    this.newStoreForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.createNewCustomStore();
     });
 
     this.priceForm.addEventListener('submit', (e) => {
@@ -199,13 +207,11 @@ class SmartShoppingApp {
       this.saveSettings();
     });
 
-    // Auth Form
     this.authForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.handleAuthSubmit();
     });
 
-    // Copy to WhatsApp
     document.getElementById('copyTextBtn').addEventListener('click', () => {
       this.exportTextArea.select();
       navigator.clipboard.writeText(this.exportTextArea.value).then(() => {
@@ -224,7 +230,7 @@ class SmartShoppingApp {
     } else {
       const user = AuthManager.getUserConfig();
       this.authTitle.textContent = `Bienvenido, ${user ? user.username : 'Usuario'}`;
-      this.authDesc.textContent = 'Ingresa tu contraseña para descifrar tus datos de compras.';
+      this.authDesc.textContent = 'Ingresa tu contraseña para descifrar tus compras.';
       this.usernameGroup.style.display = 'none';
       this.authSubmitBtn.textContent = 'Desbloquear App';
       this.authOverlay.style.display = 'flex';
@@ -252,7 +258,14 @@ class SmartShoppingApp {
 
   async postAuthUnlock() {
     this.authOverlay.style.display = 'none';
-    this.budget = await StorageManager.loadBudget();
+    const settings = await StorageManager.loadSettings();
+    this.appName = settings.appName || 'SmartShop Multi';
+    this.brandTitleText.textContent = this.appName;
+
+    this.customStores = await StorageManager.loadCustomStores();
+    STORES = { ...DEFAULT_STORES, ...this.customStores };
+
+    this.budget = settings.defaultBudget || 35000;
     this.history = await HistoryManager.loadHistory();
     await this.switchStore(this.currentStoreId);
   }
@@ -263,6 +276,35 @@ class SmartShoppingApp {
     this.updateStoreCategories();
     this.catalog = await StorageManager.loadCatalog(this.currentStoreId);
     this.render();
+  }
+
+  openNewStoreModal() {
+    this.newStoreNameInput.value = '';
+    this.newStoreIconInput.value = '🛍️';
+    this.newStoreModal.classList.add('active');
+  }
+
+  async createNewCustomStore() {
+    const name = SecurityModule.sanitizeInput(this.newStoreNameInput.value.trim());
+    const icon = this.newStoreIconInput.value.trim() || '🛍️';
+    if (!name) return;
+
+    const storeId = 'custom_store_' + Date.now().toString(36);
+    const newStoreObj = {
+      id: storeId,
+      name: name,
+      icon: icon,
+      color: '#6366f1',
+      isCustom: true
+    };
+
+    this.customStores[storeId] = newStoreObj;
+    STORES[storeId] = newStoreObj;
+    MULTI_STORE_CATALOGS[storeId] = [];
+
+    await StorageManager.saveCustomStores(this.customStores);
+    this.closeAllModals();
+    await this.switchStore(storeId);
   }
 
   initTheme() {
@@ -365,17 +407,24 @@ class SmartShoppingApp {
     this.budgetModal.classList.add('active');
   }
 
-  openSettingsModal() {
-    this.defaultBudgetInput.value = this.budget;
+  async openSettingsModal() {
+    const settings = await StorageManager.loadSettings();
+    this.settingAppNameInput.value = settings.appName || 'SmartShop Multi';
+    this.currencySelect.value = settings.currency || '₡';
+    this.defaultBudgetInput.value = settings.defaultBudget || 35000;
     this.settingsModal.classList.add('active');
   }
 
   async saveSettings() {
-    const val = parseFloat(this.defaultBudgetInput.value);
-    if (!isNaN(val) && val >= 0) {
-      this.budget = val;
-      await StorageManager.saveBudget(val);
-    }
+    const appName = SecurityModule.sanitizeInput(this.settingAppNameInput.value.trim()) || 'SmartShop Multi';
+    const currency = this.currencySelect.value || '₡';
+    const val = parseFloat(this.defaultBudgetInput.value) || 35000;
+
+    this.appName = appName;
+    this.brandTitleText.textContent = this.appName;
+    this.budget = val;
+
+    await StorageManager.saveSettings({ appName, currency, defaultBudget: val });
     this.closeAllModals();
     this.render();
   }
@@ -421,20 +470,13 @@ class SmartShoppingApp {
     this.render();
   }
 
-  downloadHistoryHTML() {
-    const htmlReport = HistoryManager.exportToHTML(this.history);
-    if (!htmlReport) {
+  exportPDF() {
+    if (!this.history || this.history.length === 0) {
       alert('El historial está vacío.');
       return;
     }
-    const blob = new Blob([htmlReport], { type: 'text/html;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `reporte_compras_${new Date().toISOString().slice(0,10)}.html`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    // Triggers native iOS / browser print-to-PDF
+    window.print();
   }
 
   async clearAllHistory() {
@@ -683,8 +725,8 @@ class SmartShoppingApp {
 
   renderHistoryMode() {
     this.bottomBarContent.innerHTML = `
-      <button class="btn-primary" style="flex: 1;" onclick="app.downloadHistoryHTML()">
-        <span>🌐 Exportar Reporte HTML Web</span>
+      <button class="btn-primary" style="flex: 1;" onclick="app.exportPDF()">
+        <span>📄 Exportar a PDF</span>
       </button>
       <button class="btn-secondary" onclick="app.clearAllHistory()" title="Borrar historial">
         <span>🗑️</span>
@@ -696,7 +738,7 @@ class SmartShoppingApp {
         <div class="empty-state">
           <span class="empty-icon">📜</span>
           <span class="empty-title">Sin historial de compras</span>
-          <span class="empty-desc">Tus compras terminadas en cualquier comercio se guardarán aquí con su desglose y total en Colones (₡).</span>
+          <span class="empty-desc">Tus compras terminadas en cualquier comercio se guardarán aquí con su desglose y total.</span>
         </div>
       `;
       return;
@@ -733,10 +775,9 @@ class SmartShoppingApp {
       <!-- History Filter Pills -->
       <div class="category-filter-pills" style="margin-bottom: 14px;">
         <button class="pill-btn ${this.selectedHistoryStoreFilter === 'all' ? 'active' : ''}" onclick="app.setHistoryStoreFilter('all')">Todas</button>
-        <button class="pill-btn ${this.selectedHistoryStoreFilter === 'supermercado' ? 'active' : ''}" onclick="app.setHistoryStoreFilter('supermercado')">🛒 Supermercado</button>
-        <button class="pill-btn ${this.selectedHistoryStoreFilter === 'ferreteria' ? 'active' : ''}" onclick="app.setHistoryStoreFilter('ferreteria')">🔨 Ferretería</button>
-        <button class="pill-btn ${this.selectedHistoryStoreFilter === 'comercial' ? 'active' : ''}" onclick="app.setHistoryStoreFilter('comercial')">🛍️ Comercial</button>
-        <button class="pill-btn ${this.selectedHistoryStoreFilter === 'farmacia' ? 'active' : ''}" onclick="app.setHistoryStoreFilter('farmacia')">💊 Farmacia</button>
+        ${Object.values(STORES).map(s => `
+          <button class="pill-btn ${this.selectedHistoryStoreFilter === s.id ? 'active' : ''}" onclick="app.setHistoryStoreFilter('${s.id}')">${s.icon} ${s.name}</button>
+        `).join('')}
       </div>
 
       <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; color: var(--text-secondary);">
