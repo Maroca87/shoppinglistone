@@ -12,7 +12,7 @@ const STORE_CATEGORIES = {
   },
   ferreteria: {
     herramientas: { id: 'herramientas', name: 'Herramientas', icon: '🔨', color: '#f59e0b' },
-    fijaciones: { id: 'fijaciones', name: 'Fijaciones y Clavos', icon: '🔩', color: '#8b5cf6' },
+    fijaciones: { id: 'fijaciones', name: 'Fijaciones y Clavos', icon: '🔩', color: '#475569' },
     pintura: { id: 'pintura', name: 'Pintura y Acabados', icon: '🎨', color: '#ec4899' },
     electricidad: { id: 'electricidad', name: 'Electricidad', icon: '⚡', color: '#eab308' },
     fontaneria: { id: 'fontaneria', name: 'Fontanería y Tuberías', icon: '🚰', color: '#06b6d4' },
@@ -21,7 +21,7 @@ const STORE_CATEGORIES = {
   },
   comercial: {
     electronica: { id: 'electronica', name: 'Electrónica y Cables', icon: '🔌', color: '#3b82f6' },
-    tecnologia: { id: 'tecnologia', name: 'Tecnología y Gadgets', icon: '🎧', color: '#6366f1' },
+    tecnologia: { id: 'tecnologia', name: 'Tecnología y Gadgets', icon: '🎧', color: '#0284c7' },
     hogar: { id: 'hogar', name: 'Hogar y Decoración', icon: '🏠', color: '#10b981' },
     ropa: { id: 'ropa', name: 'Ropa y Accesorios', icon: '👕', color: '#ec4899' },
     otros: { id: 'otros', name: 'Otros Comerciales', icon: '📦', color: '#64748b' }
@@ -30,7 +30,7 @@ const STORE_CATEGORIES = {
     medicamentos: { id: 'medicamentos', name: 'Medicamentos', icon: '💊', color: '#ef4444' },
     botiquin: { id: 'botiquin', name: 'Botiquín y Primeros Auxilios', icon: '🩹', color: '#10b981' },
     cuidado: { id: 'cuidado', name: 'Cuidado e Higiene', icon: '🧴', color: '#06b6d4' },
-    salud: { id: 'salud', name: 'Salud y Vitaminas', icon: '🧪', color: '#8b5cf6' },
+    salud: { id: 'salud', name: 'Salud y Vitaminas', icon: '🧪', color: '#059669' },
     otros: { id: 'otros', name: 'Otros Farmacéuticos', icon: '📦', color: '#64748b' }
   },
   veterinaria: {
@@ -43,7 +43,7 @@ const STORE_CATEGORIES = {
 };
 
 const DEFAULT_CUSTOM_STORE_CATEGORIES = {
-  general: { id: 'general', name: 'General', icon: '📦', color: '#6366f1' },
+  general: { id: 'general', name: 'General', icon: '📦', color: '#2563eb' },
   urgente: { id: 'urgente', name: 'Urgente', icon: '🚨', color: '#ef4444' },
   otros: { id: 'otros', name: 'Otros', icon: '📑', color: '#64748b' }
 };

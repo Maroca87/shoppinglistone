@@ -3,7 +3,7 @@ const DEFAULT_STORES = {
     id: 'supermercado',
     name: 'Supermercado',
     icon: '🛒',
-    color: '#6366f1',
+    color: '#2563eb',
     isCustom: false
   },
   ferreteria: {

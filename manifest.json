@@ -1,11 +1,11 @@
 {
-  "name": "ShoppingListOne",
-  "short_name": "ShoppingListOne",
+  "name": "ShoppinglistOne",
+  "short_name": "ShoppinglistOne",
   "description": "Lista de compras inteligente multi-tienda optimizada para iOS y móvil",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#6366f1",
+  "background_color": "#090d16",
+  "theme_color": "#2563eb",
   "orientation": "portrait",
   "icons": [
     {

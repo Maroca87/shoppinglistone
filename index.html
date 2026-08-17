@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ShoppingListOne | Multi-Shopping & Historial PWA</title>
-  <meta name="description" content="PWA Multi-tienda (Supermercado, Ferretería, Comercial, Farmacia, Veterinaria) con exportación, historial de compras y presupuesto.">
+  <title>ShoppinglistOne | Multi-Shopping & Historial PWA</title>
+  <meta name="description" content="ShoppinglistOne - Aplicación inteligente para compras multi-tienda (Supermercado, Ferretería, Comercial, Farmacia, Veterinaria) con cifrado, respaldos y control de presupuesto.">
   
   <!-- PWA & Mobile Meta Tags -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#2563eb">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ShoppingListOne">
+  <meta name="apple-mobile-web-app-title" content="ShoppinglistOne">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/variables.css">
@@ -21,26 +22,106 @@
 </head>
 <body>
 
+  <!-- Visual App Launch Splash Screen -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-content">
+      <div class="splash-glow"></div>
+      <img src="icons/apple-touch-icon.png" alt="ShoppinglistOne Logo" class="splash-logo">
+      <h1 class="splash-title">ShoppinglistOne</h1>
+      <p class="splash-subtitle">Multi-Tienda Inteligente & Segura</p>
+      <div class="splash-loader-bar">
+        <div class="splash-loader-fill"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Fullscreen Auth / Lock Screen Overlay -->
   <div id="authOverlay" class="auth-overlay" style="display: flex;">
     <div class="auth-card">
-      <div class="auth-icon">🔒</div>
-      <h2 id="authTitle" class="modal-title">ShoppingListOne</h2>
-      <p id="authDesc" style="font-size: 0.88rem; color: var(--text-secondary);">Ingresa tu contraseña para acceder a tus listas.</p>
-      <form id="authForm" style="width: 100%; display: flex; flex-direction: column; gap: 14px; margin-top: 6px;">
-        <div id="usernameGroup" class="form-group" style="display: none;">
-          <label class="form-label">Nombre de Usuario</label>
-          <input type="text" id="authUsername" class="form-control" placeholder="Ej. Marcos" autocomplete="username">
-        </div>
-        <div class="form-group">
+      <div class="auth-header-logo">
+        <img src="icons/apple-touch-icon.png" alt="Logo" class="auth-logo-img">
+      </div>
+      <h2 id="authMainTitle" class="auth-brand-title">ShoppinglistOne</h2>
+      
+      <!-- Auth Switcher Tabs -->
+      <div id="authTabs" class="auth-tabs">
+        <button type="button" id="authTabLogin" class="auth-tab-btn active">Iniciar Sesión</button>
+        <button type="button" id="authTabRegister" class="auth-tab-btn">Crear Usuario</button>
+      </div>
+
+      <!-- 1. LOGIN VIEW -->
+      <form id="loginForm" class="auth-form-view active">
+        <p id="loginGreeting" class="auth-desc">Ingresa tu contraseña para acceder a tus listas.</p>
+        <div class="form-group" style="width: 100%;">
           <label class="form-label">Contraseña / PIN</label>
-          <input type="password" id="authPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password" style="height: 48px; font-size: 1.1rem; text-align: center;">
+          <input type="password" id="loginPassword" class="form-control auth-input-large" placeholder="••••••••" required autocomplete="current-password">
         </div>
-        <button type="submit" id="authSubmitBtn" class="btn-primary auth-btn-large" style="width: 100%; justify-content: center;">
+        <button type="submit" id="loginSubmitBtn" class="btn-primary auth-btn-large" style="width: 100%; justify-content: center;">
           Desbloquear App
         </button>
-        <button type="button" id="forgotPwdBtn" class="pill-btn" style="border: none; background: transparent; color: var(--text-muted); font-size: 0.8rem; margin-top: 6px; cursor: pointer;">
-          ¿Olvidaste tu contraseña? Restablecer App
+        <button type="button" id="openRecoverBtn" class="auth-link-btn">
+          🔑 ¿Olvidaste tu contraseña? Recuperar Contraseña
+        </button>
+      </form>
+
+      <!-- 2. REGISTER NEW USER VIEW -->
+      <form id="registerForm" class="auth-form-view">
+        <p class="auth-desc">Crea tu cuenta local protegida con cifrado de grado militar.</p>
+        <div class="form-group" style="width: 100%;">
+          <label class="form-label">Nombre de Usuario</label>
+          <input type="text" id="regUsername" class="form-control" placeholder="Ej. Marcos" required autocomplete="username">
+        </div>
+        <div class="form-group" style="width: 100%;">
+          <label class="form-label">Contraseña o PIN</label>
+          <input type="password" id="regPassword" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <div class="form-group" style="width: 100%;">
+          <label class="form-label">Confirmar Contraseña</label>
+          <input type="password" id="regConfirmPassword" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <div class="form-group" style="width: 100%;">
+          <label class="form-label">Pregunta Secreta para Recuperación</label>
+          <select id="regSecurityQuestion" class="form-control">
+            <option value="¿Cuál es el nombre de tu primera mascota?">¿Cuál es el nombre de tu primera mascota?</option>
+            <option value="¿En qué ciudad naciste?">¿En qué ciudad naciste?</option>
+            <option value="¿Cuál es tu comida favorita?">¿Cuál es tu comida favorita?</option>
+            <option value="¿Cuál fue tu primera escuela?">¿Cuál fue tu primera escuela?</option>
+            <option value="¿Cuál es tu palabra secreta personal?">¿Cuál es tu palabra secreta personal?</option>
+          </select>
+        </div>
+        <div class="form-group" style="width: 100%;">
+          <label class="form-label">Respuesta Secreta</label>
+          <input type="text" id="regSecurityAnswer" class="form-control" placeholder="Escribe tu respuesta aquí" required autocomplete="off">
+        </div>
+        <button type="submit" id="regSubmitBtn" class="btn-primary auth-btn-large" style="width: 100%; justify-content: center;">
+          Crear Cuenta e Iniciar
+        </button>
+      </form>
+
+      <!-- 3. RECOVER PASSWORD VIEW -->
+      <form id="recoverForm" class="auth-form-view">
+        <p class="auth-desc">Responde a tu pregunta secreta para restablecer tu contraseña sin perder tus listas.</p>
+        <div class="recovery-question-card">
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Tu Pregunta Secreta:</span>
+          <p id="recoverQuestionDisplay" style="font-weight: 600; color: var(--primary); margin-top: 4px; font-size: 0.92rem;"></p>
+        </div>
+        <div class="form-group" style="width: 100%;">
+          <label class="form-label">Tu Respuesta Secreta</label>
+          <input type="text" id="recoverAnswerInput" class="form-control" placeholder="Escribe la respuesta guardada" required autocomplete="off">
+        </div>
+        <div class="form-group" style="width: 100%;">
+          <label class="form-label">Nueva Contraseña</label>
+          <input type="password" id="recoverNewPwdInput" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <div class="form-group" style="width: 100%;">
+          <label class="form-label">Confirmar Nueva Contraseña</label>
+          <input type="password" id="recoverConfirmPwdInput" class="form-control" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <button type="submit" id="recoverSubmitBtn" class="btn-primary auth-btn-large" style="width: 100%; justify-content: center;">
+          Restablecer y Entrar
+        </button>
+        <button type="button" id="recoverCancelBtn" class="auth-link-btn">
+          ← Volver al Inicio de Sesión
         </button>
       </form>
     </div>
@@ -51,9 +132,10 @@
     <div class="header-top">
       <div class="brand-title">
         <img src="icons/apple-touch-icon.png" alt="Logo" class="brand-logo-img">
-        <span id="brandTitleText">ShoppingListOne</span>
+        <span id="brandTitleText">ShoppinglistOne</span>
       </div>
       <div class="header-actions">
+        <button id="backupBtn" class="icon-btn" title="Módulo de Respaldos">💾</button>
         <button id="settingsBtn" class="icon-btn" title="Ajustes de la App">⚙️</button>
         <button id="exportBtn" class="icon-btn" title="Exportar o compartir">📤</button>
         <button id="themeToggleBtn" class="icon-btn" title="Cambiar tema">☀️</button>
@@ -133,91 +215,118 @@
     </div>
   </div>
 
-  <!-- New Custom Store Modal -->
-  <div id="newStoreModal" class="modal-overlay">
+  <!-- Complete Edit & Delete Product Modal -->
+  <div id="editItemModal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title">➕ Crear Nuevo Tipo de Tienda</h3>
+        <h3 class="modal-title">✏️ Editar / Eliminar Producto</h3>
         <button class="icon-btn modal-close">✕</button>
       </div>
-      <form id="newStoreForm" style="display: flex; flex-direction: column; gap: 14px;">
+      <form id="editItemForm" style="display: flex; flex-direction: column; gap: 14px;">
         <div class="form-group">
-          <label class="form-label">Nombre de la Tienda / Comercio</label>
-          <input type="text" id="newStoreName" class="form-control" placeholder="Ej. Veterinaria, Mascotas, Librería, Zapatería..." required>
+          <label class="form-label">Nombre del Producto</label>
+          <input type="text" id="editItemName" class="form-control" required placeholder="Nombre del producto">
         </div>
         <div class="form-group">
-          <label class="form-label">Emoji / Icono Representativo</label>
-          <input type="text" id="newStoreIcon" class="form-control" value="🐶" placeholder="Ej. 🐶, 📚, 🚗, 🏡, 🛠️" required>
-        </div>
-        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Crear Tienda</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Settings Modal with Change Password Section -->
-  <div id="settingsModal" class="modal-overlay">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 class="modal-title">⚙️ Ajustes de la Aplicación</h3>
-        <button class="icon-btn modal-close">✕</button>
-      </div>
-      <form id="settingsForm" style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="form-group">
-          <label class="form-label">Símbolo de Moneda</label>
-          <select id="settingCurrency" class="form-control">
-            <option value="₡">₡ (Colones Costa Rica)</option>
-            <option value="$">$ (Dólares / Pesos)</option>
-            <option value="€">€ (Euros)</option>
-            <option value="MXN">MXN (Pesos Mexicanos)</option>
-            <option value="CLP">CLP (Pesos Chilenos)</option>
+          <label class="form-label">Categoría</label>
+          <select id="editItemCategory" class="form-control">
+            <!-- Populated dynamically -->
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Presupuesto por Defecto (₡)</label>
-          <input type="number" id="settingDefaultBudget" class="form-control" placeholder="35000" min="0" step="500">
-        </div>
-        <button type="submit" class="btn-primary" style="margin-top: 4px; width: 100%; justify-content: center;">Guardar Ajustes de Preferencias</button>
-      </form>
-
-      <!-- Change Password Form Section -->
-      <div style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 10px;">
-        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; color: var(--text-primary);">🔒 Cambiar Contraseña / PIN</h4>
-        <form id="changePwdForm" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Contraseña Actual</label>
-            <input type="password" id="pwdCurrent" class="form-control" placeholder="••••••••" required>
+            <label class="form-label">Precio Unitario (₡)</label>
+            <input type="number" id="editItemPrice" class="form-control" placeholder="0" min="0" step="25" required>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Nueva Contraseña</label>
-              <input type="password" id="pwdNew" class="form-control" placeholder="••••••••" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Confirmar Nueva</label>
-              <input type="password" id="pwdConfirm" class="form-control" placeholder="••••••••" required>
-            </div>
+          <div class="form-group">
+            <label class="form-label">Cantidad</label>
+            <input type="number" id="editItemQty" class="form-control" value="1" min="1" step="1">
           </div>
-          <button type="submit" class="btn-secondary" style="width: 100%; justify-content: center; font-weight: 700;">Actualizar Contraseña</button>
-        </form>
-      </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unidad de Medida</label>
+          <select id="editItemUnit" class="form-control">
+            <option value="unidad">unidad(es)</option>
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="L">L</option>
+            <option value="ml">ml</option>
+            <option value="pqte">paquete</option>
+            <option value="caja">caja</option>
+            <option value="rollo">rollo</option>
+            <option value="galón">galón</option>
+            <option value="bolsa">bolsa</option>
+            <option value="lata">lata</option>
+            <option value="botella">botella</option>
+            <option value="mano">mano</option>
+            <option value="tubo">tubo</option>
+            <option value="hoja">hoja</option>
+          </select>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 6px;">
+          <button type="submit" class="btn-primary" style="flex: 2; justify-content: center;">
+            💾 Guardar Cambios
+          </button>
+          <button type="button" id="deleteItemBtn" class="btn-danger-outline" style="flex: 1; justify-content: center;" onclick="app.deleteCurrentEditingItem()">
+            🗑️ Eliminar
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Price Edit Modal -->
-  <div id="priceModal" class="modal-overlay">
+  <!-- Backup & Restore Module Modal (Módulo de Respaldos) -->
+  <div id="backupModal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title">Editar Precio del Producto</h3>
+        <h3 class="modal-title">💾 Módulo de Respaldos</h3>
         <button class="icon-btn modal-close">✕</button>
       </div>
-      <p id="priceModalItemName" style="font-weight: 600; color: var(--primary);"></p>
-      <form id="priceForm" style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="form-group">
-          <label class="form-label">Precio Unitario en Colones (₡)</label>
-          <input type="number" id="modalPriceInput" class="form-control" placeholder="1500" min="0" step="25" required>
+
+      <!-- Export Section -->
+      <div class="backup-section">
+        <div class="backup-section-header">
+          <span class="backup-badge-icon">📥</span>
+          <div>
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Exportar Copia de Seguridad</h4>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Descarga un archivo seguro con todos tus catálogos, tiendas personalizadas e historial.</p>
+          </div>
         </div>
-        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Guardar Precio</button>
-      </form>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" id="downloadBackupBtn" class="btn-primary" style="flex: 1; justify-content: center;">
+            📥 Descargar Respaldo (.json)
+          </button>
+          <button type="button" id="copyBackupBtn" class="btn-secondary" style="flex: 1; justify-content: center;">
+            📋 Copiar al Portapapeles
+          </button>
+        </div>
+      </div>
+
+      <!-- Import Section -->
+      <div class="backup-section" style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+        <div class="backup-section-header">
+          <span class="backup-badge-icon">🔄</span>
+          <div>
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Restaurar Copia de Seguridad</h4>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Selecciona un archivo JSON de respaldo de ShoppinglistOne para recuperar tus datos.</p>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Cargar Archivo (.json):</label>
+          <input type="file" id="backupFileInput" accept=".json" class="form-control" style="padding-top: 8px;">
+        </div>
+
+        <div class="form-group" style="margin-top: 6px;">
+          <label class="form-label">O pegar texto JSON de respaldo:</label>
+          <textarea id="backupJsonInput" class="form-control" placeholder='Pega aquí el contenido JSON del respaldo...' style="height: 90px; font-family: monospace; font-size: 0.8rem;"></textarea>
+        </div>
+
+        <button type="button" id="restoreBackupBtn" class="btn-secondary" style="width: 100%; justify-content: center; font-weight: 700; margin-top: 4px;">
+          🔄 Restaurar Datos Ahora
+        </button>
+      </div>
     </div>
   </div>
 
@@ -225,7 +334,7 @@
   <div id="customItemModal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title">Agregar Producto a esta Tienda</h3>
+        <h3 class="modal-title">➕ Agregar Producto a esta Tienda</h3>
         <button class="icon-btn modal-close">✕</button>
       </div>
       <form id="customItemForm" style="display: flex; flex-direction: column; gap: 14px;">
@@ -262,10 +371,92 @@
             <option value="rollo">rollo</option>
             <option value="galón">galón</option>
             <option value="bolsa">bolsa</option>
+            <option value="lata">lata</option>
+            <option value="botella">botella</option>
+            <option value="mano">mano</option>
+            <option value="tubo">tubo</option>
+            <option value="hoja">hoja</option>
           </select>
         </div>
-        <button type="submit" class="btn-primary" style="margin-top: 10px; width: 100%; justify-content: center;">Guardar en esta Tienda y Seleccionar</button>
+        <button type="submit" class="btn-primary" style="margin-top: 10px; width: 100%; justify-content: center;">Guardar y Añadir a la Lista</button>
       </form>
+    </div>
+  </div>
+
+  <!-- New Custom Store Modal -->
+  <div id="newStoreModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ Crear Nuevo Tipo de Tienda</h3>
+        <button class="icon-btn modal-close">✕</button>
+      </div>
+      <form id="newStoreForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label">Nombre de la Tienda / Comercio</label>
+          <input type="text" id="newStoreName" class="form-control" placeholder="Ej. Librería, Mascotas, Zapatería..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Emoji / Icono Representativo</label>
+          <input type="text" id="newStoreIcon" class="form-control" value="🛍️" placeholder="Ej. 🐶, 📚, 🚗, 🏡, 🛠️" required>
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Crear Tienda</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settings Modal with Change Password Section -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Ajustes de la Aplicación</h3>
+        <button class="icon-btn modal-close">✕</button>
+      </div>
+      <form id="settingsForm" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label">Símbolo de Moneda</label>
+          <select id="settingCurrency" class="form-control">
+            <option value="₡">₡ (Colones Costa Rica)</option>
+            <option value="$">$ (Dólares / Pesos)</option>
+            <option value="€">€ (Euros)</option>
+            <option value="MXN">MXN (Pesos Mexicanos)</option>
+            <option value="CLP">CLP (Pesos Chilenos)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Presupuesto por Defecto</label>
+          <input type="number" id="settingDefaultBudget" class="form-control" placeholder="35000" min="0" step="500">
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top: 4px; width: 100%; justify-content: center;">Guardar Ajustes de Preferencias</button>
+      </form>
+
+      <!-- Quick Link to Backup Module -->
+      <div style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 10px;">
+        <button type="button" class="btn-secondary" style="width: 100%; justify-content: center;" onclick="app.closeAllModals(); app.openBackupModal();">
+          💾 Abrir Módulo de Respaldos
+        </button>
+      </div>
+
+      <!-- Change Password Form Section -->
+      <div style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 10px;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; color: var(--text-primary);">🔒 Cambiar Contraseña / PIN</h4>
+        <form id="changePwdForm" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">Contraseña Actual</label>
+            <input type="password" id="pwdCurrent" class="form-control" placeholder="••••••••" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nueva Contraseña</label>
+              <input type="password" id="pwdNew" class="form-control" placeholder="••••••••" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirmar Nueva</label>
+              <input type="password" id="pwdConfirm" class="form-control" placeholder="••••••••" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-secondary" style="width: 100%; justify-content: center; font-weight: 700;">Actualizar Contraseña</button>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -278,7 +469,7 @@
       </div>
       <form id="budgetForm" style="display: flex; flex-direction: column; gap: 14px;">
         <div class="form-group">
-          <label class="form-label">Límite de Presupuesto en Colones (₡)</label>
+          <label class="form-label">Límite de Presupuesto</label>
           <input type="number" id="modalBudgetInput" class="form-control" placeholder="35000" min="0" step="500">
         </div>
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Actualizar Presupuesto</button>

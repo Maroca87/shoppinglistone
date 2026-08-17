@@ -1,3 +1,8 @@
+/**
+ * ShoppinglistOne - Storage & Backup Manager
+ * Handles local encrypted catalogs, user preferences, multi-store data,
+ * and complete Backup & Restore module (.json import/export).
+ */
 const ENCRYPTED_STORES_PREFIX = 'smart_shop_store_encrypted_v3_';
 const ENCRYPTED_CUSTOM_STORES_KEY = 'smart_shop_custom_stores_v1';
 const ENCRYPTED_APP_SETTINGS_KEY = 'smart_shop_app_settings_v1';
@@ -48,7 +53,7 @@ const StorageManager = {
           ...item,
           selected: false,
           completed: false,
-          quantity: 1
+          quantity: item.quantity || 1
         }));
         await this.saveCatalog(storeId, initial);
         return initial;
@@ -57,14 +62,14 @@ const StorageManager = {
       if (AuthManager.activeCryptoKey) {
         const payloadObj = JSON.parse(encryptedPayload);
         const decrypted = await SecurityModule.decryptData(payloadObj, AuthManager.activeCryptoKey);
-        if (decrypted) return decrypted;
+        if (decrypted && Array.isArray(decrypted)) return decrypted;
       }
 
-      return defaultStoreItems.map(item => ({ ...item, selected: false, completed: false, quantity: 1 }));
+      return defaultStoreItems.map(item => ({ ...item, selected: false, completed: false, quantity: item.quantity || 1 }));
     } catch (e) {
       console.error('Error loading encrypted store catalog:', e);
       const defaultStoreItems = MULTI_STORE_CATALOGS[storeId] || [];
-      return defaultStoreItems.map(item => ({ ...item, selected: false, completed: false, quantity: 1 }));
+      return defaultStoreItems.map(item => ({ ...item, selected: false, completed: false, quantity: item.quantity || 1 }));
     }
   },
 
@@ -80,6 +85,25 @@ const StorageManager = {
     }
   },
 
+  async updateItemInCatalog(storeId, updatedItem) {
+    const catalog = await this.loadCatalog(storeId);
+    const index = catalog.findIndex(i => i.id === updatedItem.id);
+    if (index !== -1) {
+      catalog[index] = { ...catalog[index], ...updatedItem };
+    } else {
+      catalog.unshift(updatedItem);
+    }
+    await this.saveCatalog(storeId, catalog);
+    return catalog;
+  },
+
+  async deleteItemFromCatalog(storeId, itemId) {
+    const catalog = await this.loadCatalog(storeId);
+    const updated = catalog.filter(i => i.id !== itemId);
+    await this.saveCatalog(storeId, updated);
+    return updated;
+  },
+
   async loadSettings() {
     try {
       const encrypted = localStorage.getItem(ENCRYPTED_APP_SETTINGS_KEY);
@@ -91,9 +115,9 @@ const StorageManager = {
           return decrypted;
         }
       }
-      return { appName: 'SmartShop Multi', currency: '₡', defaultBudget: 35000 };
+      return { appName: 'ShoppinglistOne', currency: '₡', defaultBudget: 35000 };
     } catch (e) {
-      return { appName: 'SmartShop Multi', currency: '₡', defaultBudget: 35000 };
+      return { appName: 'ShoppinglistOne', currency: '₡', defaultBudget: 35000 };
     }
   },
 
@@ -132,6 +156,99 @@ const StorageManager = {
     return updated;
   },
 
+  // ==========================================
+  // BACKUP & RESTORE MODULE (MÓDULO DE RESPALDOS)
+  // ==========================================
+
+  async createBackup() {
+    if (!AuthManager.activeCryptoKey) {
+      throw new Error('Debes iniciar sesión para generar un respaldo.');
+    }
+
+    const customStores = await this.loadCustomStores();
+    const allStores = { ...DEFAULT_STORES, ...customStores };
+    const storesCatalogs = {};
+
+    for (const storeId of Object.keys(allStores)) {
+      storesCatalogs[storeId] = await this.loadCatalog(storeId);
+    }
+
+    const settings = await this.loadSettings();
+    const history = await HistoryManager.loadHistory();
+    const userConfig = AuthManager.getUserConfig();
+
+    const backupPayload = {
+      app: 'ShoppinglistOne',
+      version: '2.0',
+      exportedAt: new Date().toISOString(),
+      user: {
+        username: userConfig?.username || 'Usuario',
+        securityQuestion: userConfig?.securityQuestion || '¿Cuál es el nombre de tu primera mascota?'
+      },
+      settings: settings,
+      customStores: customStores,
+      storesCatalogs: storesCatalogs,
+      history: history
+    };
+
+    return JSON.stringify(backupPayload, null, 2);
+  },
+
+  async restoreBackup(backupJsonString) {
+    if (!AuthManager.activeCryptoKey) {
+      throw new Error('Debes iniciar sesión para restaurar un respaldo.');
+    }
+
+    let parsed;
+    try {
+      parsed = typeof backupJsonString === 'string' ? JSON.parse(backupJsonString) : backupJsonString;
+    } catch (e) {
+      throw new Error('El archivo o texto no es un JSON válido.');
+    }
+
+    if (!parsed || (!parsed.storesCatalogs && !parsed.stores && !parsed.app)) {
+      throw new Error('Formato de respaldo incompatible o dañado.');
+    }
+
+    let totalRestoredItems = 0;
+    let totalStores = 0;
+
+    // 1. Restore Custom Stores
+    if (parsed.customStores && typeof parsed.customStores === 'object') {
+      await this.saveCustomStores(parsed.customStores);
+    }
+
+    // 2. Restore Store Catalogs
+    const catalogsToRestore = parsed.storesCatalogs || parsed.stores || {};
+    for (const [storeId, catalogArray] of Object.entries(catalogsToRestore)) {
+      if (Array.isArray(catalogArray)) {
+        await this.saveCatalog(storeId, catalogArray);
+        totalRestoredItems += catalogArray.length;
+        totalStores++;
+      }
+    }
+
+    // 3. Restore Settings
+    if (parsed.settings) {
+      await this.saveSettings(parsed.settings);
+    }
+
+    // 4. Restore History
+    let historyCount = 0;
+    if (Array.isArray(parsed.history)) {
+      await HistoryManager.saveHistory(parsed.history);
+      historyCount = parsed.history.length;
+    }
+
+    return {
+      success: true,
+      totalStores: totalStores,
+      totalItems: totalRestoredItems,
+      historyTrips: historyCount,
+      exportedAt: parsed.exportedAt || 'Desconocida'
+    };
+  },
+
   exportToText(storeId, catalog) {
     const storeInfo = STORES[storeId] || STORES.supermercado;
     const selectedItems = catalog.filter(i => i.selected);
@@ -162,7 +279,7 @@ const StorageManager = {
 
     const total = selectedItems.reduce((acc, i) => acc + ((i.price || 0) * (i.quantity || 1)), 0);
     text += `💰 *Total Estimado:* ${StorageManager.formatCurrency(total)}\n`;
-    text += '📱 _Generado desde Smart Shopping List PWA_';
+    text += '📱 _Generado desde ShoppinglistOne PWA_';
     return text;
   }
 };

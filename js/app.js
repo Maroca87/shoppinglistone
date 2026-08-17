@@ -1,6 +1,11 @@
-class SmartShoppingApp {
+/**
+ * ShoppinglistOne - Main Application Controller
+ * Handles Multi-Store Catalogs, Real-Time Budgeting, Purchase History,
+ * Product Editing & Deletion, Backup & Restore Module, and AES-256 Auth & Recovery.
+ */
+class ShoppinglistOneApp {
   constructor() {
-    this.appName = 'ShoppingListOne';
+    this.appName = 'ShoppinglistOne';
     this.currentStoreId = 'supermercado';
     this.customStores = {};
     this.catalog = [];
@@ -10,18 +15,23 @@ class SmartShoppingApp {
     this.selectedCatFilter = 'all';
     this.selectedHistoryStoreFilter = 'all';
     this.searchTerm = '';
-    this.editingPriceItemId = null;
+    this.editingItemId = null;
     this.expandedTripId = null;
 
     this.initElements();
     this.initEvents();
     this.initTheme();
+    this.initSplash();
     this.initAuth();
   }
 
   initElements() {
+    // Splash Screen
+    this.splashScreen = document.getElementById('splashScreen');
+
     // Header Elements
     this.brandTitleText = document.getElementById('brandTitleText');
+    this.backupBtn = document.getElementById('backupBtn');
     this.themeBtn = document.getElementById('themeToggleBtn');
     this.exportBtn = document.getElementById('exportBtn');
     this.settingsBtn = document.getElementById('settingsBtn');
@@ -48,11 +58,53 @@ class SmartShoppingApp {
     this.searchInput = document.getElementById('searchInput');
     this.categoryFilterPills = document.getElementById('categoryFilterPills');
 
-    // Containers
+    // Dynamic Containers
     this.contentContainer = document.getElementById('contentContainer');
     this.bottomBarContent = document.getElementById('bottomBarContent');
 
-    // Modals
+    // Auth Elements
+    this.authOverlay = document.getElementById('authOverlay');
+    this.authTabs = document.getElementById('authTabs');
+    this.authTabLogin = document.getElementById('authTabLogin');
+    this.authTabRegister = document.getElementById('authTabRegister');
+    this.loginForm = document.getElementById('loginForm');
+    this.loginGreeting = document.getElementById('loginGreeting');
+    this.loginPasswordInput = document.getElementById('loginPassword');
+    this.openRecoverBtn = document.getElementById('openRecoverBtn');
+
+    this.registerForm = document.getElementById('registerForm');
+    this.regUsernameInput = document.getElementById('regUsername');
+    this.regPasswordInput = document.getElementById('regPassword');
+    this.regConfirmPasswordInput = document.getElementById('regConfirmPassword');
+    this.regSecurityQuestionSelect = document.getElementById('regSecurityQuestion');
+    this.regSecurityAnswerInput = document.getElementById('regSecurityAnswer');
+
+    this.recoverForm = document.getElementById('recoverForm');
+    this.recoverQuestionDisplay = document.getElementById('recoverQuestionDisplay');
+    this.recoverAnswerInput = document.getElementById('recoverAnswerInput');
+    this.recoverNewPwdInput = document.getElementById('recoverNewPwdInput');
+    this.recoverConfirmPwdInput = document.getElementById('recoverConfirmPwdInput');
+    this.recoverCancelBtn = document.getElementById('recoverCancelBtn');
+
+    // Product Edit & Delete Modal
+    this.editItemModal = document.getElementById('editItemModal');
+    this.editItemForm = document.getElementById('editItemForm');
+    this.editItemNameInput = document.getElementById('editItemName');
+    this.editItemCategorySelect = document.getElementById('editItemCategory');
+    this.editItemPriceInput = document.getElementById('editItemPrice');
+    this.editItemQtyInput = document.getElementById('editItemQty');
+    this.editItemUnitSelect = document.getElementById('editItemUnit');
+    this.deleteItemBtn = document.getElementById('deleteItemBtn');
+
+    // Backup & Restore Module Modal
+    this.backupModal = document.getElementById('backupModal');
+    this.downloadBackupBtn = document.getElementById('downloadBackupBtn');
+    this.copyBackupBtn = document.getElementById('copyBackupBtn');
+    this.backupFileInput = document.getElementById('backupFileInput');
+    this.backupJsonInput = document.getElementById('backupJsonInput');
+    this.restoreBackupBtn = document.getElementById('restoreBackupBtn');
+
+    // Custom Item Modal
     this.customItemModal = document.getElementById('customItemModal');
     this.customItemForm = document.getElementById('customItemForm');
     this.customNameInput = document.getElementById('customItemName');
@@ -61,19 +113,13 @@ class SmartShoppingApp {
     this.customQtyInput = document.getElementById('customItemQty');
     this.customUnitSelect = document.getElementById('customItemUnit');
 
+    // Custom Store Modal
     this.newStoreModal = document.getElementById('newStoreModal');
     this.newStoreForm = document.getElementById('newStoreForm');
     this.newStoreNameInput = document.getElementById('newStoreName');
     this.newStoreIconInput = document.getElementById('newStoreIcon');
 
-    this.priceModal = document.getElementById('priceModal');
-    this.priceForm = document.getElementById('priceForm');
-    this.modalPriceInput = document.getElementById('modalPriceInput');
-    this.priceModalItemName = document.getElementById('priceModalItemName');
-
-    this.budgetModal = document.getElementById('budgetModal');
-    this.budgetInput = document.getElementById('modalBudgetInput');
-
+    // Settings Modal
     this.settingsModal = document.getElementById('settingsModal');
     this.currencySelect = document.getElementById('settingCurrency');
     this.defaultBudgetInput = document.getElementById('settingDefaultBudget');
@@ -82,22 +128,25 @@ class SmartShoppingApp {
     this.newPwdInput = document.getElementById('pwdNew');
     this.confirmPwdInput = document.getElementById('pwdConfirm');
 
+    // Budget Modal
+    this.budgetModal = document.getElementById('budgetModal');
+    this.budgetInput = document.getElementById('modalBudgetInput');
+
+    // Export Modal
     this.exportModal = document.getElementById('exportModal');
     this.exportTextArea = document.getElementById('exportTextArea');
 
-    // Auth Screen
-    this.authOverlay = document.getElementById('authOverlay');
-    this.authForm = document.getElementById('authForm');
-    this.authTitle = document.getElementById('authTitle');
-    this.authDesc = document.getElementById('authDesc');
-    this.usernameGroup = document.getElementById('usernameGroup');
-    this.authUsernameInput = document.getElementById('authUsername');
-    this.authPasswordInput = document.getElementById('authPassword');
-    this.authSubmitBtn = document.getElementById('authSubmitBtn');
-    this.forgotPwdBtn = document.getElementById('forgotPwdBtn');
-
     this.renderStorePills();
     this.updateStoreCategories();
+  }
+
+  initSplash() {
+    // Professional splash screen delay & smooth transition
+    setTimeout(() => {
+      if (this.splashScreen) {
+        this.splashScreen.classList.add('fade-out');
+      }
+    }, 1100);
   }
 
   renderStorePills() {
@@ -124,9 +173,12 @@ class SmartShoppingApp {
     CATEGORIES = getStoreCategories(this.currentStoreId);
     this.selectedCatFilter = 'all';
 
-    this.customCategorySelect.innerHTML = Object.values(CATEGORIES).map(cat => 
+    const categoryOptions = Object.values(CATEGORIES).map(cat => 
       `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`
     ).join('');
+
+    this.customCategorySelect.innerHTML = categoryOptions;
+    this.editItemCategorySelect.innerHTML = categoryOptions;
 
     this.renderCategoryPills();
   }
@@ -140,6 +192,7 @@ class SmartShoppingApp {
   }
 
   initEvents() {
+    // Store pills selector
     this.storeSelectorBar.addEventListener('click', async (e) => {
       const pill = e.target.closest('.store-pill');
       if (!pill || pill.classList.contains('add-store-btn')) return;
@@ -149,15 +202,18 @@ class SmartShoppingApp {
       }
     });
 
+    // Navigation Tabs
     this.tabCatalog.addEventListener('click', () => this.switchMode('catalog'));
     this.tabShopping.addEventListener('click', () => this.switchMode('shopping'));
     this.tabHistory.addEventListener('click', () => this.switchMode('history'));
 
+    // Search input
     this.searchInput.addEventListener('input', (e) => {
       this.searchTerm = SecurityModule.sanitizeInput(e.target.value.toLowerCase().trim());
       this.render();
     });
 
+    // Category pills filter
     this.categoryFilterPills.addEventListener('click', (e) => {
       const btn = e.target.closest('.pill-btn');
       if (!btn) return;
@@ -167,12 +223,15 @@ class SmartShoppingApp {
       this.render();
     });
 
+    // Header buttons
+    this.backupBtn.addEventListener('click', () => this.openBackupModal());
     this.themeBtn.addEventListener('click', () => this.toggleTheme());
     this.exportBtn.addEventListener('click', () => this.openExportModal());
     this.settingsBtn.addEventListener('click', () => this.openSettingsModal());
-    this.logoutBtn.addEventListener('click', () => AuthManager.logout());
+    this.logoutBtn.addEventListener('click', () => AuthManager.lockSession());
     this.budgetBadge.addEventListener('click', () => this.openBudgetModal());
 
+    // Close modals
     document.querySelectorAll('.modal-close').forEach(btn => {
       btn.addEventListener('click', () => this.closeAllModals());
     });
@@ -183,6 +242,7 @@ class SmartShoppingApp {
       });
     });
 
+    // Forms
     this.customItemForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.addCustomItem();
@@ -193,11 +253,17 @@ class SmartShoppingApp {
       this.createNewCustomStore();
     });
 
-    this.priceForm.addEventListener('submit', (e) => {
+    // Product Edit Form
+    this.editItemForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      this.savePriceEdit();
+      this.saveEditedItem();
     });
 
+    this.deleteItemBtn.addEventListener('click', () => {
+      this.deleteCurrentEditingItem();
+    });
+
+    // Budget Form
     document.getElementById('budgetForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const val = parseFloat(this.budgetInput.value);
@@ -209,6 +275,7 @@ class SmartShoppingApp {
       }
     });
 
+    // Settings Form
     document.getElementById('settingsForm').addEventListener('submit', (e) => {
       e.preventDefault();
       this.saveSettings();
@@ -219,14 +286,31 @@ class SmartShoppingApp {
       this.handlePasswordChange();
     });
 
-    this.authForm.addEventListener('submit', (e) => {
+    // Auth Tabs & Forms
+    this.authTabLogin.addEventListener('click', () => this.switchAuthView('login'));
+    this.authTabRegister.addEventListener('click', () => this.switchAuthView('register'));
+    this.openRecoverBtn.addEventListener('click', () => this.switchAuthView('recover'));
+    this.recoverCancelBtn.addEventListener('click', () => this.switchAuthView('login'));
+
+    this.loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      this.handleAuthSubmit();
+      this.handleLoginSubmit();
     });
 
-    this.forgotPwdBtn.addEventListener('click', () => {
-      this.handleResetPassword();
+    this.registerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleRegisterSubmit();
     });
+
+    this.recoverForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleRecoverSubmit();
+    });
+
+    // Backup Buttons
+    this.downloadBackupBtn.addEventListener('click', () => this.handleDownloadBackup());
+    this.copyBackupBtn.addEventListener('click', () => this.handleCopyBackup());
+    this.restoreBackupBtn.addEventListener('click', () => this.handleRestoreBackup());
 
     document.getElementById('copyTextBtn').addEventListener('click', () => {
       this.exportTextArea.select();
@@ -236,84 +320,141 @@ class SmartShoppingApp {
     });
   }
 
+  // ==========================================
+  // AUTH & SESSION MANAGEMENT
+  // ==========================================
+
   async initAuth() {
     if (!AuthManager.isRegistered()) {
-      this.authTitle.textContent = 'Crear Cuenta Segura';
-      this.authDesc.textContent = 'Establece tu usuario y contraseña para cifrar localmente tus compras.';
-      this.usernameGroup.style.display = 'flex';
-      this.authSubmitBtn.textContent = 'Registrar y Cifrar App';
-      this.forgotPwdBtn.style.display = 'none';
+      this.switchAuthView('register');
+      this.authTabs.style.display = 'none'; // Only show register for first-time setup
       this.authOverlay.style.display = 'flex';
     } else {
       const user = AuthManager.getUserConfig();
-      this.authTitle.textContent = `Bienvenido, ${user ? user.username : 'Usuario'}`;
-      this.authDesc.textContent = 'Ingresa tu contraseña para acceder a ShoppingListOne.';
-      this.usernameGroup.style.display = 'none';
-      this.authSubmitBtn.textContent = 'Desbloquear App';
-      this.forgotPwdBtn.style.display = 'block';
+      this.loginGreeting.textContent = `¡Hola, ${user ? user.username : 'Usuario'}! Ingresa tu contraseña para acceder a ShoppinglistOne.`;
+      this.authTabs.style.display = 'flex';
+      this.switchAuthView('login');
       this.authOverlay.style.display = 'flex';
     }
   }
 
-  async handleAuthSubmit() {
-    const pwd = this.authPasswordInput.value;
+  switchAuthView(viewName) {
+    this.loginForm.classList.toggle('active', viewName === 'login');
+    this.registerForm.classList.toggle('active', viewName === 'register');
+    this.recoverForm.classList.toggle('active', viewName === 'recover');
+
+    this.authTabLogin.classList.toggle('active', viewName === 'login');
+    this.authTabRegister.classList.toggle('active', viewName === 'register');
+
+    if (viewName === 'recover') {
+      this.recoverQuestionDisplay.textContent = AuthManager.getSecurityQuestion();
+      this.recoverAnswerInput.value = '';
+      this.recoverNewPwdInput.value = '';
+      this.recoverConfirmPwdInput.value = '';
+    }
+  }
+
+  async handleLoginSubmit() {
+    const pwd = this.loginPasswordInput.value;
     if (!pwd) return;
 
-    if (!AuthManager.isRegistered()) {
-      const username = this.authUsernameInput.value.trim() || 'Usuario';
-      await AuthManager.registerUser(username, pwd);
+    const success = await AuthManager.loginUser(pwd);
+    if (success) {
+      this.loginPasswordInput.value = '';
       await this.postAuthUnlock();
     } else {
-      const success = await AuthManager.loginUser(pwd);
-      if (success) {
-        await this.postAuthUnlock();
-      } else {
-        alert('Contraseña incorrecta. Intenta nuevamente.');
-        this.authPasswordInput.value = '';
+      alert('Contraseña incorrecta. Intenta nuevamente.');
+      this.loginPasswordInput.value = '';
+      this.loginPasswordInput.focus();
+    }
+  }
+
+  async handleRegisterSubmit() {
+    const username = this.regUsernameInput.value.trim() || 'Usuario';
+    const pwd = this.regPasswordInput.value;
+    const confirmPwd = this.regConfirmPasswordInput.value;
+    const question = this.regSecurityQuestionSelect.value;
+    const answer = this.regSecurityAnswerInput.value.trim();
+
+    if (!pwd || !confirmPwd) {
+      alert('Ingresa una contraseña y confírmala.');
+      return;
+    }
+
+    if (pwd !== confirmPwd) {
+      alert('Las contraseñas no coinciden.');
+      return;
+    }
+
+    if (!answer) {
+      alert('Por favor escribe tu respuesta secreta de recuperación.');
+      return;
+    }
+
+    if (AuthManager.isRegistered()) {
+      if (!confirm(`¿Deseas registrar un nuevo usuario (${username})? Esto configurará una nueva bóveda local.`)) {
+        return;
       }
     }
+
+    await AuthManager.registerUser(username, pwd, question, answer);
+    this.regPasswordInput.value = '';
+    this.regConfirmPasswordInput.value = '';
+    this.regSecurityAnswerInput.value = '';
+    this.authTabs.style.display = 'flex';
+    await this.postAuthUnlock();
   }
 
-  handleResetPassword() {
-    const answer = prompt('⚠️ RESTABLECER CONTRASEÑA:\nAl restablecer tu contraseña se borrarán los datos locales cifrados por seguridad.\n\nEscribe "RESET" para confirmar y registrar una nueva contraseña:');
-    if (answer && answer.trim().toUpperCase() === 'RESET') {
-      AuthManager.resetAccount();
+  async handleRecoverSubmit() {
+    const answer = this.recoverAnswerInput.value.trim();
+    const newPwd = this.recoverNewPwdInput.value;
+    const confirmPwd = this.recoverConfirmPwdInput.value;
+
+    if (!answer) {
+      alert('Ingresa tu respuesta secreta.');
+      return;
     }
-  }
 
-  async handlePasswordChange() {
-    const current = this.currentPwdInput.value;
-    const newPwd = this.newPwdInput.value;
-    const confirmPwd = this.confirmPwdInput.value;
-
-    if (!current || !newPwd) {
-      alert('Ingresa tu contraseña actual y la nueva.');
+    if (!newPwd || !confirmPwd) {
+      alert('Ingresa la nueva contraseña y confírmala.');
       return;
     }
 
     if (newPwd !== confirmPwd) {
-      alert('La nueva contraseña y la confirmación no coinciden.');
+      alert('Las contraseñas no coinciden.');
       return;
     }
 
-    const res = await AuthManager.changePassword(current, newPwd);
+    const res = await AuthManager.recoverPassword(answer, newPwd);
     if (res.success) {
-      // Re-save catalog and data with new key
-      await this.saveAndRender();
       alert(res.message);
-      this.currentPwdInput.value = '';
-      this.newPwdInput.value = '';
-      this.confirmPwdInput.value = '';
-      this.closeAllModals();
+      this.recoverAnswerInput.value = '';
+      this.recoverNewPwdInput.value = '';
+      this.recoverConfirmPwdInput.value = '';
+      await this.postAuthUnlock();
     } else {
       alert(res.message);
     }
+  }
+
+  // Instant session lock callback
+  handleLockSession() {
+    this.catalog = [];
+    this.history = [];
+    this.contentContainer.innerHTML = '';
+    this.loginPasswordInput.value = '';
+    this.switchAuthView('login');
+    const user = AuthManager.getUserConfig();
+    if (user) {
+      this.loginGreeting.textContent = `¡Hola, ${user.username}! Ingresa tu contraseña para desbloquear ShoppinglistOne.`;
+    }
+    this.authOverlay.style.display = 'flex';
   }
 
   async postAuthUnlock() {
     this.authOverlay.style.display = 'none';
     const settings = await StorageManager.loadSettings();
-    this.appName = 'ShoppingListOne';
+    this.appName = 'ShoppinglistOne';
     this.brandTitleText.textContent = this.appName;
 
     this.customStores = await StorageManager.loadCustomStores();
@@ -323,6 +464,10 @@ class SmartShoppingApp {
     this.history = await HistoryManager.loadHistory();
     await this.switchStore(this.currentStoreId);
   }
+
+  // ==========================================
+  // STORE SWITCHING & CREATION
+  // ==========================================
 
   async switchStore(storeId) {
     this.currentStoreId = storeId;
@@ -348,7 +493,7 @@ class SmartShoppingApp {
       id: storeId,
       name: name,
       icon: icon,
-      color: '#6366f1',
+      color: '#2563eb',
       isCustom: true
     };
 
@@ -360,6 +505,10 @@ class SmartShoppingApp {
     this.closeAllModals();
     await this.switchStore(storeId);
   }
+
+  // ==========================================
+  // THEME & NAVIGATION
+  // ==========================================
 
   initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -381,6 +530,51 @@ class SmartShoppingApp {
     this.tabShopping.classList.toggle('active', mode === 'shopping');
     this.tabHistory.classList.toggle('active', mode === 'history');
     this.render();
+  }
+
+  // ==========================================
+  // PRODUCT EDITING & DELETION
+  // ==========================================
+
+  openEditItemModal(itemId) {
+    const item = this.catalog.find(i => String(i.id) === String(itemId));
+    if (!item) return;
+
+    this.editingItemId = itemId;
+    this.editItemNameInput.value = item.name || '';
+    this.editItemCategorySelect.value = item.category || 'otros';
+    this.editItemPriceInput.value = item.price || 0;
+    this.editItemQtyInput.value = item.quantity || 1;
+    this.editItemUnitSelect.value = item.unit || 'unidad';
+
+    this.editItemModal.classList.add('active');
+  }
+
+  async saveEditedItem() {
+    if (!this.editingItemId) return;
+    const item = this.catalog.find(i => String(i.id) === String(this.editingItemId));
+    if (item) {
+      item.name = SecurityModule.sanitizeInput(this.editItemNameInput.value.trim()) || item.name;
+      item.category = this.editItemCategorySelect.value || item.category;
+      item.price = parseFloat(this.editItemPriceInput.value) || 0;
+      item.quantity = Math.max(1, parseFloat(this.editItemQtyInput.value) || 1);
+      item.unit = this.editItemUnitSelect.value || item.unit;
+
+      await this.saveAndRender();
+    }
+    this.closeAllModals();
+  }
+
+  async deleteCurrentEditingItem() {
+    if (!this.editingItemId) return;
+    const item = this.catalog.find(i => String(i.id) === String(this.editingItemId));
+    const itemName = item ? item.name : 'este producto';
+
+    if (confirm(`¿Estás seguro de eliminar "${itemName}" del catálogo de esta tienda?`)) {
+      this.catalog = this.catalog.filter(i => String(i.id) !== String(this.editingItemId));
+      await this.saveAndRender();
+      this.closeAllModals();
+    }
   }
 
   async toggleItemSelection(id) {
@@ -406,26 +600,6 @@ class SmartShoppingApp {
       item.completed = !item.completed;
       await this.saveAndRender();
     }
-  }
-
-  openPriceModal(id) {
-    const item = this.catalog.find(i => i.id === id);
-    if (!item) return;
-
-    this.editingPriceItemId = id;
-    this.priceModalItemName.textContent = item.name;
-    this.modalPriceInput.value = item.price || 0;
-    this.priceModal.classList.add('active');
-  }
-
-  async savePriceEdit() {
-    if (!this.editingPriceItemId) return;
-    const item = this.catalog.find(i => i.id === this.editingPriceItemId);
-    if (item) {
-      item.price = parseFloat(this.modalPriceInput.value) || 0;
-      await this.saveAndRender();
-    }
-    this.closeAllModals();
   }
 
   openCustomItemModal() {
@@ -456,6 +630,87 @@ class SmartShoppingApp {
     await this.saveAndRender();
   }
 
+  // ==========================================
+  // BACKUP & RESTORE MODULE
+  // ==========================================
+
+  openBackupModal() {
+    this.backupFileInput.value = '';
+    this.backupJsonInput.value = '';
+    this.backupModal.classList.add('active');
+  }
+
+  async handleDownloadBackup() {
+    try {
+      const backupJson = await StorageManager.createBackup();
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '');
+      const filename = `ShoppinglistOne_backup_${dateStr}_${timeStr}.json`;
+
+      const blob = new Blob([backupJson], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Error al generar respaldo: ' + e.message);
+    }
+  }
+
+  async handleCopyBackup() {
+    try {
+      const backupJson = await StorageManager.createBackup();
+      await navigator.clipboard.writeText(backupJson);
+      alert('¡Copia de seguridad copiada al portapapeles! Puedes guardarla en un bloc de notas o enviarla.');
+    } catch (e) {
+      alert('Error al copiar respaldo: ' + e.message);
+    }
+  }
+
+  async handleRestoreBackup() {
+    let jsonContent = this.backupJsonInput.value.trim();
+
+    // If file input has a file selected, read from file
+    if (this.backupFileInput.files && this.backupFileInput.files.length > 0) {
+      const file = this.backupFileInput.files[0];
+      try {
+        jsonContent = await file.text();
+      } catch (err) {
+        alert('Error al leer el archivo de respaldo seleccionado.');
+        return;
+      }
+    }
+
+    if (!jsonContent) {
+      alert('Por favor selecciona un archivo .json o pega el texto JSON de respaldo.');
+      return;
+    }
+
+    if (!confirm('⚠️ RESTAURAR RESPALDO:\nEsta acción actualizará tus catálogos, listas e historial con la copia de seguridad.\n\n¿Deseas continuar?')) {
+      return;
+    }
+
+    try {
+      const result = await StorageManager.restoreBackup(jsonContent);
+      if (result.success) {
+        alert(`✅ ¡Respaldo restaurado con éxito!\n\n• Tiendas actualizadas: ${result.totalStores}\n• Productos restaurados: ${result.totalItems}\n• Viajes en historial: ${result.historyTrips}`);
+        this.closeAllModals();
+        await this.postAuthUnlock();
+      }
+    } catch (e) {
+      alert('❌ Error al restaurar respaldo: ' + e.message);
+    }
+  }
+
+  // ==========================================
+  // BUDGET & SETTINGS
+  // ==========================================
+
   openBudgetModal() {
     this.budgetInput.value = this.budget;
     this.budgetModal.classList.add('active');
@@ -474,7 +729,7 @@ class SmartShoppingApp {
 
     this.budget = val;
 
-    await StorageManager.saveSettings({ appName: 'ShoppingListOne', currency, defaultBudget: val });
+    await StorageManager.saveSettings({ appName: 'ShoppinglistOne', currency, defaultBudget: val });
     this.closeAllModals();
     this.render();
   }
@@ -488,8 +743,39 @@ class SmartShoppingApp {
     document.querySelectorAll('.modal-overlay').forEach(modal => {
       modal.classList.remove('active');
     });
-    this.editingPriceItemId = null;
+    this.editingItemId = null;
   }
+
+  async handlePasswordChange() {
+    const current = this.currentPwdInput.value;
+    const newPwd = this.newPwdInput.value;
+    const confirmPwd = this.confirmPwdInput.value;
+
+    if (!current || !newPwd) {
+      alert('Ingresa tu contraseña actual y la nueva.');
+      return;
+    }
+
+    if (newPwd !== confirmPwd) {
+      alert('La nueva contraseña y la confirmación no coinciden.');
+      return;
+    }
+
+    const res = await AuthManager.changePassword(current, newPwd);
+    if (res.success) {
+      alert(res.message);
+      this.currentPwdInput.value = '';
+      this.newPwdInput.value = '';
+      this.confirmPwdInput.value = '';
+      this.closeAllModals();
+    } else {
+      alert(res.message);
+    }
+  }
+
+  // ==========================================
+  // SHOPPING TRIP COMPLETION & HISTORY
+  // ==========================================
 
   async finishShoppingTrip() {
     const selectedItems = this.catalog.filter(i => i.selected);
@@ -532,8 +818,8 @@ class SmartShoppingApp {
       try {
         const stats = HistoryManager.calculateStats(this.history);
         await navigator.share({
-          title: 'Reporte de Compras - ShoppingListOne',
-          text: `📊 Mi Reporte de Compras en ShoppingListOne:\n• Total Gastado: ${StorageManager.formatCurrency(stats.totalSpent)}\n• Compras Realizadas: ${stats.totalTrips}\n• Promedio por viaje: ${StorageManager.formatCurrency(stats.avgSpent)}`
+          title: 'Reporte de Compras - ShoppinglistOne',
+          text: `📊 Mi Reporte de Compras en ShoppinglistOne:\n• Total Gastado: ${StorageManager.formatCurrency(stats.totalSpent)}\n• Compras Realizadas: ${stats.totalTrips}\n• Promedio por viaje: ${StorageManager.formatCurrency(stats.avgSpent)}`
         });
       } catch (err) {
         console.log('Share canceled or not supported:', err);
@@ -585,6 +871,10 @@ class SmartShoppingApp {
     this.progressBarFill.style.width = `${percentage}%`;
     this.progressBarFill.classList.toggle('exceeded', spent > this.budget && this.budget > 0);
   }
+
+  // ==========================================
+  // MAIN RENDER ENGINE
+  // ==========================================
 
   render() {
     if (!AuthManager.activeCryptoKey) return;
@@ -684,8 +974,9 @@ class SmartShoppingApp {
         <div class="item-info">
           <span class="item-name">${item.name}</span>
           <div class="item-subtext">
-            <span class="edit-price-tag" onclick="app.openPriceModal('${item.id}')" title="Toca para editar precio">
-              ✏️ ${formattedPrice} / ${item.unit || 'unid'}
+            <span>${formattedPrice} / ${item.unit || 'unid'}</span>
+            <span class="edit-product-btn" onclick="app.openEditItemModal('${item.id}')" title="Editar o eliminar producto">
+              ✏️ Editar
             </span>
           </div>
         </div>
@@ -789,7 +1080,7 @@ class SmartShoppingApp {
           <span class="item-name">${item.name}</span>
           <span class="item-subtext">${subtext}</span>
         </div>
-        <button class="btn-small" onclick="event.stopPropagation(); app.openPriceModal('${item.id}')" title="Editar precio">✏️</button>
+        <button class="btn-small" onclick="event.stopPropagation(); app.openEditItemModal('${item.id}')" title="Editar producto">✏️</button>
       </li>
     `;
   }
@@ -903,5 +1194,5 @@ class SmartShoppingApp {
 // Global App Instance
 let app;
 document.addEventListener('DOMContentLoaded', () => {
-  app = new SmartShoppingApp();
+  app = new ShoppinglistOneApp();
 });

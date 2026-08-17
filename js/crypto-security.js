@@ -34,6 +34,35 @@ const SecurityModule = {
     return this.buf2hex(iv);
   },
 
+  // Generate random raw 256-bit key in hex format
+  generateRandomRawKey() {
+    const keyBytes = new Uint8Array(32);
+    crypto.getRandomValues(keyBytes);
+    return this.buf2hex(keyBytes);
+  },
+
+  // Import raw key from hex format to CryptoKey (AES-GCM)
+  async importRawKey(hexString) {
+    const rawBuffer = this.hex2buf(hexString);
+    return await crypto.subtle.importKey(
+      "raw",
+      rawBuffer,
+      { name: "AES-GCM" },
+      true,
+      ["encrypt", "decrypt"]
+    );
+  },
+
+  // Export CryptoKey to raw hex format
+  async exportRawKey(cryptoKey) {
+    try {
+      const rawBuffer = await crypto.subtle.exportKey("raw", cryptoKey);
+      return this.buf2hex(rawBuffer);
+    } catch (e) {
+      return null;
+    }
+  },
+
   // Derive CryptoKey from password using PBKDF2 (100,000 iterations)
   async deriveKey(password, saltHex) {
     const enc = new TextEncoder();
