@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -44,7 +44,7 @@
   </div>
 
   <!-- Fullscreen Auth / Lock Screen Overlay -->
-  <div id="authOverlay" class="auth-overlay" style="display: flex;">
+  <div id="authOverlay" class="auth-overlay" style="display: none;">
     <div class="auth-card">
       <div class="auth-header-logo">
         <img src="icons/apple-touch-icon.png?v=10" alt="Logo" class="auth-logo-img">
@@ -146,12 +146,11 @@
         <button id="backupBtn" class="icon-btn" title="Módulo de Respaldos">💾</button>
         <button id="settingsBtn" class="icon-btn" title="Ajustes de la App">⚙️</button>
         <button id="exportBtn" class="icon-btn" title="Exportar o compartir">📤</button>
-        <button id="themeToggleBtn" class="icon-btn" title="Cambiar tema">☀️</button>
         <button id="logoutBtn" class="icon-btn" title="Bloquear / Cerrar Sesión">🔒</button>
       </div>
     </div>
 
-    <!-- 3 Navigation Tabs -->
+    <!-- 4 Navigation Tabs -->
     <nav class="app-nav-tabs">
       <button id="tabCatalog" class="tab-btn active">
         <span>📋</span>
@@ -165,6 +164,11 @@
       <button id="tabHistory" class="tab-btn">
         <span>📜</span>
         <span>Historial</span>
+      </button>
+      <button id="tabTodo" class="tab-btn">
+        <span>📝</span>
+        <span>To-Do</span>
+        <span id="todoBadge" class="tab-badge" style="display: none;">0</span>
       </button>
     </nav>
   </header>
@@ -423,11 +427,8 @@
         <div class="form-group">
           <label class="form-label">Símbolo de Moneda</label>
           <select id="settingCurrency" class="form-control">
-            <option value="₡">₡ (Colones Costa Rica)</option>
-            <option value="$">$ (Dólares / Pesos)</option>
-            <option value="€">€ (Euros)</option>
-            <option value="MXN">MXN (Pesos Mexicanos)</option>
-            <option value="CLP">CLP (Pesos Chilenos)</option>
+            <option value="₡">₡ (Colones Costarricenses - CRC)</option>
+            <option value="$">$ (Dólares Estadounidenses - USD)</option>
           </select>
         </div>
         <div class="form-group">

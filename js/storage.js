@@ -1,21 +1,35 @@
 /**
- * ShoppinglistOne - Storage & Backup Manager
- * Handles local encrypted catalogs, user preferences, multi-store data,
- * and complete XML Backup & Restore module (.xml import/export).
+ * ShoppinglistOne - Gestor de Almacenamiento, Respaldo y Reportes
+ * Gestiona catálogos cifrados en reposo, tiendas personalizadas, ajustes de usuario,
+ * historial de compras, lista rápida To-Do y respaldos completos en XML (.xml) y JSON.
  */
 const ENCRYPTED_STORES_PREFIX = 'smart_shop_store_encrypted_v3_';
 const ENCRYPTED_CUSTOM_STORES_KEY = 'smart_shop_custom_stores_v1';
 const ENCRYPTED_APP_SETTINGS_KEY = 'smart_shop_app_settings_v1';
+const ENCRYPTED_TODO_LIST_KEY = 'smart_shop_todo_list_v1';
 
 const StorageManager = {
   activeCurrency: '₡',
 
+  /**
+   * Formatea un monto numérico con la moneda activa (₡ para Colones CRC o $ para Dólares USD).
+   * @param {number} amount - Monto numérico a formatear.
+   * @returns {string} Monto con el símbolo y formato correspondiente.
+   */
   formatCurrency(amount) {
     const val = Number(amount) || 0;
-    const curr = this.activeCurrency || '₡';
-    return curr + ' ' + val.toLocaleString('es-CR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const curr = this.activeCurrency === '$' ? '$' : '₡';
+    if (curr === '$') {
+      return '$ ' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return '₡ ' + Math.round(val).toLocaleString('es-CR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
 
+  /**
+   * Escapa caracteres especiales para inclusión segura en XML.
+   * @param {*} unsafe - Valor sin sanitizar.
+   * @returns {string} Cadena sanitizada para XML.
+   */
   escapeXml(unsafe) {
     if (unsafe === null || unsafe === undefined) return '';
     return String(unsafe).replace(/[<>&'"]/g, c => {
@@ -29,6 +43,10 @@ const StorageManager = {
     });
   },
 
+  /**
+   * Carga y descifra las tiendas personalizadas del usuario.
+   * @returns {Promise<Object>} Mapa de tiendas personalizadas.
+   */
   async loadCustomStores() {
     try {
       const encrypted = localStorage.getItem(ENCRYPTED_CUSTOM_STORES_KEY);
@@ -43,6 +61,10 @@ const StorageManager = {
     }
   },
 
+  /**
+   * Cifra y guarda las tiendas personalizadas del usuario.
+   * @param {Object} customStoresMap - Mapa de tiendas personalizadas.
+   */
   async saveCustomStores(customStoresMap) {
     try {
       if (AuthManager.activeCryptoKey) {
@@ -50,10 +72,15 @@ const StorageManager = {
         localStorage.setItem(ENCRYPTED_CUSTOM_STORES_KEY, JSON.stringify(encrypted));
       }
     } catch (e) {
-      console.error('Error saving custom stores:', e);
+      console.error('Error al guardar tiendas personalizadas:', e);
     }
   },
 
+  /**
+   * Carga y descifra el catálogo de una tienda específica.
+   * @param {string} storeId - Identificador de la tienda.
+   * @returns {Promise<Array>} Lista de productos del catálogo.
+   */
   async loadCatalog(storeId = 'supermercado') {
     try {
       const keyName = ENCRYPTED_STORES_PREFIX + storeId;
@@ -80,12 +107,17 @@ const StorageManager = {
 
       return defaultStoreItems.map(item => ({ ...item, selected: false, completed: false, quantity: item.quantity || 1 }));
     } catch (e) {
-      console.error('Error loading encrypted store catalog:', e);
+      console.error('Error al cargar catálogo de tienda:', e);
       const defaultStoreItems = MULTI_STORE_CATALOGS[storeId] || [];
       return defaultStoreItems.map(item => ({ ...item, selected: false, completed: false, quantity: item.quantity || 1 }));
     }
   },
 
+  /**
+   * Cifra y guarda el catálogo de una tienda específica.
+   * @param {string} storeId - Identificador de la tienda.
+   * @param {Array} catalog - Lista de productos.
+   */
   async saveCatalog(storeId, catalog) {
     try {
       if (AuthManager.activeCryptoKey) {
@@ -94,10 +126,16 @@ const StorageManager = {
         localStorage.setItem(keyName, JSON.stringify(encrypted));
       }
     } catch (e) {
-      console.error('Error saving encrypted store catalog:', e);
+      console.error('Error al guardar catálogo cifrado:', e);
     }
   },
 
+  /**
+   * Actualiza o inserta un producto en el catálogo de una tienda.
+   * @param {string} storeId - Identificador de la tienda.
+   * @param {Object} updatedItem - Producto a actualizar.
+   * @returns {Promise<Array>} Catálogo actualizado.
+   */
   async updateItemInCatalog(storeId, updatedItem) {
     const catalog = await this.loadCatalog(storeId);
     const index = catalog.findIndex(i => String(i.id) === String(updatedItem.id));
@@ -110,6 +148,12 @@ const StorageManager = {
     return catalog;
   },
 
+  /**
+   * Elimina un producto del catálogo de una tienda.
+   * @param {string} storeId - Identificador de la tienda.
+   * @param {string} itemId - ID del producto a eliminar.
+   * @returns {Promise<Array>} Catálogo actualizado.
+   */
   async deleteItemFromCatalog(storeId, itemId) {
     const catalog = await this.loadCatalog(storeId);
     const updated = catalog.filter(i => String(i.id) !== String(itemId));
@@ -117,6 +161,10 @@ const StorageManager = {
     return updated;
   },
 
+  /**
+   * Carga y descifra la configuración y preferencias de la aplicación.
+   * @returns {Promise<Object>} Objeto de configuración.
+   */
   async loadSettings() {
     try {
       const encrypted = localStorage.getItem(ENCRYPTED_APP_SETTINGS_KEY);
@@ -124,7 +172,7 @@ const StorageManager = {
         const payloadObj = JSON.parse(encrypted);
         const decrypted = await SecurityModule.decryptData(payloadObj, AuthManager.activeCryptoKey);
         if (decrypted) {
-          if (decrypted.currency) this.activeCurrency = decrypted.currency;
+          if (decrypted.currency) this.activeCurrency = (decrypted.currency === '$' ? '$' : '₡');
           return decrypted;
         }
       }
@@ -134,31 +182,50 @@ const StorageManager = {
     }
   },
 
+  /**
+   * Cifra y guarda la configuración de la aplicación.
+   * @param {Object} settingsObj - Objeto de configuración.
+   */
   async saveSettings(settingsObj) {
     try {
       if (settingsObj && settingsObj.currency) {
-        this.activeCurrency = settingsObj.currency;
+        this.activeCurrency = (settingsObj.currency === '$' ? '$' : '₡');
       }
       if (AuthManager.activeCryptoKey) {
         const encrypted = await SecurityModule.encryptData(settingsObj, AuthManager.activeCryptoKey);
         localStorage.setItem(ENCRYPTED_APP_SETTINGS_KEY, JSON.stringify(encrypted));
       }
     } catch (e) {
-      console.error('Error saving settings:', e);
+      console.error('Error al guardar ajustes:', e);
     }
   },
 
+  /**
+   * Carga el presupuesto por defecto.
+   * @returns {Promise<number>} Presupuesto.
+   */
   async loadBudget() {
     const settings = await this.loadSettings();
     return settings.defaultBudget || 35000;
   },
 
+  /**
+   * Guarda el presupuesto por defecto.
+   * @param {number} amount - Monto del presupuesto.
+   */
   async saveBudget(amount) {
     const settings = await this.loadSettings();
     settings.defaultBudget = amount;
     await this.saveSettings(settings);
   },
 
+  /**
+   * Reinicia una sesión de compra para una tienda.
+   * @param {string} storeId - Identificador de tienda.
+   * @param {Array} catalog - Catálogo actual.
+   * @param {boolean} keepSelected - Si se mantienen seleccionados los productos.
+   * @returns {Promise<Array>} Catálogo reiniciado.
+   */
   async resetShoppingTrip(storeId, catalog, keepSelected = false) {
     const updated = catalog.map(item => ({
       ...item,
@@ -170,9 +237,51 @@ const StorageManager = {
   },
 
   // ==========================================
+  // MÓDULO TO-DO (LISTAS RÁPIDAS E INESPERADAS)
+  // ==========================================
+
+  /**
+   * Carga y descifra la lista de tareas/compras rápidas To-Do.
+   * @returns {Promise<Array>} Lista de elementos To-Do.
+   */
+  async loadTodoList() {
+    try {
+      const encrypted = localStorage.getItem(ENCRYPTED_TODO_LIST_KEY);
+      if (encrypted && AuthManager.activeCryptoKey) {
+        const payloadObj = JSON.parse(encrypted);
+        const decrypted = await SecurityModule.decryptData(payloadObj, AuthManager.activeCryptoKey);
+        if (decrypted && Array.isArray(decrypted)) return decrypted;
+      }
+      return [];
+    } catch (e) {
+      console.error('Error al cargar lista To-Do:', e);
+      return [];
+    }
+  },
+
+  /**
+   * Cifra y guarda la lista To-Do en el almacenamiento local.
+   * @param {Array} todoList - Lista de tareas/notas.
+   */
+  async saveTodoList(todoList) {
+    try {
+      if (AuthManager.activeCryptoKey) {
+        const encrypted = await SecurityModule.encryptData(todoList, AuthManager.activeCryptoKey);
+        localStorage.setItem(ENCRYPTED_TODO_LIST_KEY, JSON.stringify(encrypted));
+      }
+    } catch (e) {
+      console.error('Error al guardar lista To-Do:', e);
+    }
+  },
+
+  // ==========================================
   // XML BACKUP & RESTORE MODULE (MÓDULO DE RESPALDOS XML)
   // ==========================================
 
+  /**
+   * Genera un archivo de respaldo XML con todas las tiendas, catálogos, historial, To-Do y ajustes.
+   * @returns {Promise<string>} Contenido del documento XML generado.
+   */
   async createBackup() {
     if (!AuthManager.activeCryptoKey) {
       throw new Error('Debes iniciar sesión para generar un respaldo.');
@@ -182,32 +291,33 @@ const StorageManager = {
     const allStores = { ...DEFAULT_STORES, ...customStores };
     const settings = await this.loadSettings();
     const history = await HistoryManager.loadHistory();
+    const todoList = await this.loadTodoList();
     const userConfig = AuthManager.getUserConfig();
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-    xml += `<ShoppinglistOneBackup version="2.0" exportedAt="${new Date().toISOString()}">\n`;
+    xml += `<ShoppinglistOneBackup version="2.1" exportedAt="${new Date().toISOString()}">\n`;
 
-    // User section
+    // Sección de usuario
     xml += `  <User>\n`;
     xml += `    <Username>${this.escapeXml(userConfig?.username || 'Usuario')}</Username>\n`;
     xml += `    <SecurityQuestion>${this.escapeXml(userConfig?.securityQuestion || '¿Cuál es el nombre de tu primera mascota?')}</SecurityQuestion>\n`;
     xml += `  </User>\n`;
 
-    // Settings section
+    // Sección de configuración
     xml += `  <Settings>\n`;
     xml += `    <AppName>${this.escapeXml(settings?.appName || 'ShoppinglistOne')}</AppName>\n`;
-    xml += `    <Currency>${this.escapeXml(settings?.currency || '₡')}</Currency>\n`;
+    xml += `    <Currency>${this.escapeXml(settings?.currency === '$' ? '$' : '₡')}</Currency>\n`;
     xml += `    <DefaultBudget>${Number(settings?.defaultBudget) || 35000}</DefaultBudget>\n`;
     xml += `  </Settings>\n`;
 
-    // Custom Stores
+    // Tiendas personalizadas
     xml += `  <CustomStores>\n`;
     for (const [storeId, s] of Object.entries(customStores)) {
-      xml += `    <Store id="${this.escapeXml(storeId)}" name="${this.escapeXml(s.name)}" icon="${this.escapeXml(s.icon)}" color="${this.escapeXml(s.color || '#2563eb')}" isCustom="true" />\n`;
+      xml += `    <Store id="${this.escapeXml(storeId)}" name="${this.escapeXml(s.name)}" icon="${this.escapeXml(s.icon)}" color="${this.escapeXml(s.color || '#3b82f6')}" isCustom="true" />\n`;
     }
     xml += `  </CustomStores>\n`;
 
-    // Stores Catalogs
+    // Catálogos de todas las tiendas
     xml += `  <StoresCatalogs>\n`;
     for (const storeId of Object.keys(allStores)) {
       const catalog = await this.loadCatalog(storeId);
@@ -219,7 +329,7 @@ const StorageManager = {
     }
     xml += `  </StoresCatalogs>\n`;
 
-    // Purchase History
+    // Historial de compras
     xml += `  <History>\n`;
     for (const trip of history) {
       xml += `    <Trip id="${this.escapeXml(trip.id)}" storeId="${this.escapeXml(trip.storeId)}" storeName="${this.escapeXml(trip.storeName)}" storeIcon="${this.escapeXml(trip.storeIcon)}" date="${this.escapeXml(trip.date)}" formattedDate="${this.escapeXml(trip.formattedDate)}" totalSpent="${Number(trip.totalSpent) || 0}" itemCount="${Number(trip.itemCount) || 0}">\n`;
@@ -234,10 +344,22 @@ const StorageManager = {
     }
     xml += `  </History>\n`;
 
+    // Lista rápida To-Do
+    xml += `  <TodoList>\n`;
+    for (const todo of todoList) {
+      xml += `    <Todo id="${this.escapeXml(todo.id)}" text="${this.escapeXml(todo.text)}" completed="${Boolean(todo.completed)}" createdAt="${this.escapeXml(todo.createdAt || '')}" />\n`;
+    }
+    xml += `  </TodoList>\n`;
+
     xml += `</ShoppinglistOneBackup>\n`;
     return xml;
   },
 
+  /**
+   * Restaura un respaldo desde una cadena XML o JSON.
+   * @param {string} backupString - Contenido del respaldo.
+   * @returns {Promise<Object>} Resumen de la restauración.
+   */
   async restoreBackup(backupString) {
     if (!AuthManager.activeCryptoKey) {
       throw new Error('Debes iniciar sesión para restaurar un respaldo.');
@@ -257,6 +379,11 @@ const StorageManager = {
     }
   },
 
+  /**
+   * Procesa y restaura una copia de seguridad en formato XML.
+   * @param {string} xmlString - Texto XML del respaldo.
+   * @returns {Promise<Object>} Resumen detallado.
+   */
   async restoreBackupXML(xmlString) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -275,7 +402,7 @@ const StorageManager = {
     let totalRestoredItems = 0;
     let totalStores = 0;
 
-    // 1. Restore Custom Stores
+    // 1. Restaurar Tiendas Personalizadas
     const customStoresMap = {};
     const customStoreEls = xmlDoc.querySelectorAll("CustomStores > Store");
     customStoreEls.forEach(el => {
@@ -285,7 +412,7 @@ const StorageManager = {
           id: id,
           name: el.getAttribute('name') || 'Tienda',
           icon: el.getAttribute('icon') || '🛍️',
-          color: el.getAttribute('color') || '#2563eb',
+          color: el.getAttribute('color') || '#3b82f6',
           isCustom: true
         };
       }
@@ -294,7 +421,7 @@ const StorageManager = {
       await this.saveCustomStores(customStoresMap);
     }
 
-    // 2. Restore Store Catalogs
+    // 2. Restaurar Catálogos de Tiendas
     const storeEls = xmlDoc.querySelectorAll("StoresCatalogs > Store");
     for (const sEl of storeEls) {
       const storeId = sEl.getAttribute('id');
@@ -318,15 +445,16 @@ const StorageManager = {
       totalStores++;
     }
 
-    // 3. Restore Settings
+    // 3. Restaurar Ajustes
     const settingsEl = xmlDoc.querySelector("Settings");
     if (settingsEl) {
-      const currency = settingsEl.querySelector("Currency")?.textContent || '₡';
+      const rawCurr = settingsEl.querySelector("Currency")?.textContent || '₡';
+      const currency = rawCurr === '$' ? '$' : '₡';
       const defaultBudget = parseFloat(settingsEl.querySelector("DefaultBudget")?.textContent) || 35000;
       await this.saveSettings({ appName: 'ShoppinglistOne', currency, defaultBudget });
     }
 
-    // 4. Restore History
+    // 4. Restaurar Historial de Compras
     const historyList = [];
     const tripEls = xmlDoc.querySelectorAll("History > Trip");
     tripEls.forEach(tEl => {
@@ -360,15 +488,37 @@ const StorageManager = {
       await HistoryManager.saveHistory(historyList);
     }
 
+    // 5. Restaurar Lista To-Do
+    const todoList = [];
+    const todoEls = xmlDoc.querySelectorAll("TodoList > Todo");
+    todoEls.forEach(tEl => {
+      todoList.push({
+        id: tEl.getAttribute('id') || ('todo_' + Date.now().toString(36) + Math.random().toString(36).slice(2)),
+        text: tEl.getAttribute('text') || '',
+        completed: tEl.getAttribute('completed') === 'true',
+        createdAt: tEl.getAttribute('createdAt') || new Date().toISOString()
+      });
+    });
+
+    if (todoList.length > 0) {
+      await this.saveTodoList(todoList);
+    }
+
     return {
       success: true,
       totalStores,
       totalItems: totalRestoredItems,
       historyTrips: historyList.length,
+      todoItems: todoList.length,
       exportedAt: exportedAt
     };
   },
 
+  /**
+   * Procesa y restaura una copia de seguridad en formato JSON.
+   * @param {string} jsonString - Texto JSON del respaldo.
+   * @returns {Promise<Object>} Resumen de la restauración.
+   */
   async restoreBackupJSON(jsonString) {
     let parsed;
     try {
@@ -394,6 +544,9 @@ const StorageManager = {
     }
 
     if (parsed.settings) {
+      if (parsed.settings.currency) {
+        parsed.settings.currency = parsed.settings.currency === '$' ? '$' : '₡';
+      }
       await this.saveSettings(parsed.settings);
     }
 
@@ -403,15 +556,28 @@ const StorageManager = {
       historyCount = parsed.history.length;
     }
 
+    let todoCount = 0;
+    if (Array.isArray(parsed.todoList)) {
+      await this.saveTodoList(parsed.todoList);
+      todoCount = parsed.todoList.length;
+    }
+
     return {
       success: true,
       totalStores,
       totalItems: totalRestoredItems,
       historyTrips: historyCount,
+      todoItems: todoCount,
       exportedAt: parsed.exportedAt || 'Desconocida'
     };
   },
 
+  /**
+   * Exporta la lista de compras seleccionadas a formato de texto enriquecido (WhatsApp / Telegram).
+   * @param {string} storeId - Identificador de la tienda.
+   * @param {Array} catalog - Catálogo actual.
+   * @returns {string} Texto formateado.
+   */
   exportToText(storeId, catalog) {
     const storeInfo = STORES[storeId] || STORES.supermercado;
     const selectedItems = catalog.filter(i => i.selected);
@@ -443,6 +609,23 @@ const StorageManager = {
     const total = selectedItems.reduce((acc, i) => acc + ((i.price || 0) * (i.quantity || 1)), 0);
     text += `💰 *Total Estimado:* ${StorageManager.formatCurrency(total)}\n`;
     text += '📱 _Generado desde ShoppinglistOne PWA_';
+    return text;
+  },
+
+  /**
+   * Exporta la lista rápida To-Do a formato de texto para compartir.
+   * @param {Array} todoList - Lista To-Do actual.
+   * @returns {string} Texto formateado.
+   */
+  exportTodoToText(todoList) {
+    if (!todoList || todoList.length === 0) return 'La lista To-Do está vacía.';
+    let text = '📝 *LISTA RÁPIDA / TO-DO - SHOPPINGLISTONE*\n';
+    text += '───────────────\n\n';
+    todoList.forEach(t => {
+      const icon = t.completed ? '✅' : '◻️';
+      text += `${icon} ${t.text}\n`;
+    });
+    text += '\n📱 _Generado desde ShoppinglistOne_';
     return text;
   }
 };
