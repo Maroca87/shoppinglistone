@@ -1,7 +1,7 @@
 /**
  * ShoppinglistOne - Storage & Backup Manager
  * Handles local encrypted catalogs, user preferences, multi-store data,
- * and complete Backup & Restore module (.json import/export).
+ * and complete XML Backup & Restore module (.xml import/export).
  */
 const ENCRYPTED_STORES_PREFIX = 'smart_shop_store_encrypted_v3_';
 const ENCRYPTED_CUSTOM_STORES_KEY = 'smart_shop_custom_stores_v1';
@@ -14,6 +14,19 @@ const StorageManager = {
     const val = Number(amount) || 0;
     const curr = this.activeCurrency || '₡';
     return curr + ' ' + val.toLocaleString('es-CR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  },
+
+  escapeXml(unsafe) {
+    if (unsafe === null || unsafe === undefined) return '';
+    return String(unsafe).replace(/[<>&'"]/g, c => {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+      }
+    });
   },
 
   async loadCustomStores() {
@@ -87,7 +100,7 @@ const StorageManager = {
 
   async updateItemInCatalog(storeId, updatedItem) {
     const catalog = await this.loadCatalog(storeId);
-    const index = catalog.findIndex(i => i.id === updatedItem.id);
+    const index = catalog.findIndex(i => String(i.id) === String(updatedItem.id));
     if (index !== -1) {
       catalog[index] = { ...catalog[index], ...updatedItem };
     } else {
@@ -99,7 +112,7 @@ const StorageManager = {
 
   async deleteItemFromCatalog(storeId, itemId) {
     const catalog = await this.loadCatalog(storeId);
-    const updated = catalog.filter(i => i.id !== itemId);
+    const updated = catalog.filter(i => String(i.id) !== String(itemId));
     await this.saveCatalog(storeId, updated);
     return updated;
   },
@@ -157,7 +170,7 @@ const StorageManager = {
   },
 
   // ==========================================
-  // BACKUP & RESTORE MODULE (MÓDULO DE RESPALDOS)
+  // XML BACKUP & RESTORE MODULE (MÓDULO DE RESPALDOS XML)
   // ==========================================
 
   async createBackup() {
@@ -167,58 +180,210 @@ const StorageManager = {
 
     const customStores = await this.loadCustomStores();
     const allStores = { ...DEFAULT_STORES, ...customStores };
-    const storesCatalogs = {};
-
-    for (const storeId of Object.keys(allStores)) {
-      storesCatalogs[storeId] = await this.loadCatalog(storeId);
-    }
-
     const settings = await this.loadSettings();
     const history = await HistoryManager.loadHistory();
     const userConfig = AuthManager.getUserConfig();
 
-    const backupPayload = {
-      app: 'ShoppinglistOne',
-      version: '2.0',
-      exportedAt: new Date().toISOString(),
-      user: {
-        username: userConfig?.username || 'Usuario',
-        securityQuestion: userConfig?.securityQuestion || '¿Cuál es el nombre de tu primera mascota?'
-      },
-      settings: settings,
-      customStores: customStores,
-      storesCatalogs: storesCatalogs,
-      history: history
-    };
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<ShoppinglistOneBackup version="2.0" exportedAt="${new Date().toISOString()}">\n`;
 
-    return JSON.stringify(backupPayload, null, 2);
+    // User section
+    xml += `  <User>\n`;
+    xml += `    <Username>${this.escapeXml(userConfig?.username || 'Usuario')}</Username>\n`;
+    xml += `    <SecurityQuestion>${this.escapeXml(userConfig?.securityQuestion || '¿Cuál es el nombre de tu primera mascota?')}</SecurityQuestion>\n`;
+    xml += `  </User>\n`;
+
+    // Settings section
+    xml += `  <Settings>\n`;
+    xml += `    <AppName>${this.escapeXml(settings?.appName || 'ShoppinglistOne')}</AppName>\n`;
+    xml += `    <Currency>${this.escapeXml(settings?.currency || '₡')}</Currency>\n`;
+    xml += `    <DefaultBudget>${Number(settings?.defaultBudget) || 35000}</DefaultBudget>\n`;
+    xml += `  </Settings>\n`;
+
+    // Custom Stores
+    xml += `  <CustomStores>\n`;
+    for (const [storeId, s] of Object.entries(customStores)) {
+      xml += `    <Store id="${this.escapeXml(storeId)}" name="${this.escapeXml(s.name)}" icon="${this.escapeXml(s.icon)}" color="${this.escapeXml(s.color || '#2563eb')}" isCustom="true" />\n`;
+    }
+    xml += `  </CustomStores>\n`;
+
+    // Stores Catalogs
+    xml += `  <StoresCatalogs>\n`;
+    for (const storeId of Object.keys(allStores)) {
+      const catalog = await this.loadCatalog(storeId);
+      xml += `    <Store id="${this.escapeXml(storeId)}">\n`;
+      for (const item of catalog) {
+        xml += `      <Item id="${this.escapeXml(item.id)}" name="${this.escapeXml(item.name)}" category="${this.escapeXml(item.category || 'otros')}" price="${Number(item.price) || 0}" quantity="${Number(item.quantity) || 1}" unit="${this.escapeXml(item.unit || 'unidad')}" selected="${Boolean(item.selected)}" completed="${Boolean(item.completed)}" />\n`;
+      }
+      xml += `    </Store>\n`;
+    }
+    xml += `  </StoresCatalogs>\n`;
+
+    // Purchase History
+    xml += `  <History>\n`;
+    for (const trip of history) {
+      xml += `    <Trip id="${this.escapeXml(trip.id)}" storeId="${this.escapeXml(trip.storeId)}" storeName="${this.escapeXml(trip.storeName)}" storeIcon="${this.escapeXml(trip.storeIcon)}" date="${this.escapeXml(trip.date)}" formattedDate="${this.escapeXml(trip.formattedDate)}" totalSpent="${Number(trip.totalSpent) || 0}" itemCount="${Number(trip.itemCount) || 0}">\n`;
+      xml += `      <Items>\n`;
+      if (Array.isArray(trip.items)) {
+        for (const i of trip.items) {
+          xml += `        <Item name="${this.escapeXml(i.name)}" category="${this.escapeXml(i.category)}" quantity="${Number(i.quantity) || 1}" unit="${this.escapeXml(i.unit)}" price="${Number(i.price) || 0}" subtotal="${Number(i.subtotal) || 0}" />\n`;
+        }
+      }
+      xml += `      </Items>\n`;
+      xml += `    </Trip>\n`;
+    }
+    xml += `  </History>\n`;
+
+    xml += `</ShoppinglistOneBackup>\n`;
+    return xml;
   },
 
-  async restoreBackup(backupJsonString) {
+  async restoreBackup(backupString) {
     if (!AuthManager.activeCryptoKey) {
       throw new Error('Debes iniciar sesión para restaurar un respaldo.');
     }
 
-    let parsed;
-    try {
-      parsed = typeof backupJsonString === 'string' ? JSON.parse(backupJsonString) : backupJsonString;
-    } catch (e) {
-      throw new Error('El archivo o texto no es un JSON válido.');
+    const trimmed = String(backupString).trim();
+    if (!trimmed) {
+      throw new Error('El archivo o texto de respaldo está vacío.');
     }
 
-    if (!parsed || (!parsed.storesCatalogs && !parsed.stores && !parsed.app)) {
-      throw new Error('Formato de respaldo incompatible o dañado.');
+    if (trimmed.startsWith('<')) {
+      return await this.restoreBackupXML(trimmed);
+    } else if (trimmed.startsWith('{')) {
+      return await this.restoreBackupJSON(trimmed);
+    } else {
+      throw new Error('Formato de respaldo no reconocido. Debe ser un archivo XML (.xml) válido.');
+    }
+  },
+
+  async restoreBackupXML(xmlString) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+    const parserError = xmlDoc.querySelector("parsererror");
+    if (parserError) {
+      throw new Error('Error al procesar el archivo XML del respaldo. Verifica el contenido.');
+    }
+
+    const root = xmlDoc.documentElement;
+    if (!root || (root.nodeName !== 'ShoppinglistOneBackup' && root.nodeName !== 'ShoppingListBackup')) {
+      throw new Error('El archivo XML no corresponde a un respaldo válido de ShoppinglistOne.');
+    }
+
+    const exportedAt = root.getAttribute('exportedAt') || new Date().toISOString();
+    let totalRestoredItems = 0;
+    let totalStores = 0;
+
+    // 1. Restore Custom Stores
+    const customStoresMap = {};
+    const customStoreEls = xmlDoc.querySelectorAll("CustomStores > Store");
+    customStoreEls.forEach(el => {
+      const id = el.getAttribute('id');
+      if (id) {
+        customStoresMap[id] = {
+          id: id,
+          name: el.getAttribute('name') || 'Tienda',
+          icon: el.getAttribute('icon') || '🛍️',
+          color: el.getAttribute('color') || '#2563eb',
+          isCustom: true
+        };
+      }
+    });
+    if (Object.keys(customStoresMap).length > 0) {
+      await this.saveCustomStores(customStoresMap);
+    }
+
+    // 2. Restore Store Catalogs
+    const storeEls = xmlDoc.querySelectorAll("StoresCatalogs > Store");
+    for (const sEl of storeEls) {
+      const storeId = sEl.getAttribute('id');
+      if (!storeId) continue;
+      const items = [];
+      const itemEls = sEl.querySelectorAll("Item");
+      itemEls.forEach(iEl => {
+        items.push({
+          id: iEl.getAttribute('id') || ('item_' + Math.random().toString(36).slice(2)),
+          name: iEl.getAttribute('name') || '',
+          category: iEl.getAttribute('category') || 'otros',
+          price: parseFloat(iEl.getAttribute('price')) || 0,
+          quantity: parseFloat(iEl.getAttribute('quantity')) || 1,
+          unit: iEl.getAttribute('unit') || 'unidad',
+          selected: iEl.getAttribute('selected') === 'true',
+          completed: iEl.getAttribute('completed') === 'true'
+        });
+      });
+      await this.saveCatalog(storeId, items);
+      totalRestoredItems += items.length;
+      totalStores++;
+    }
+
+    // 3. Restore Settings
+    const settingsEl = xmlDoc.querySelector("Settings");
+    if (settingsEl) {
+      const currency = settingsEl.querySelector("Currency")?.textContent || '₡';
+      const defaultBudget = parseFloat(settingsEl.querySelector("DefaultBudget")?.textContent) || 35000;
+      await this.saveSettings({ appName: 'ShoppinglistOne', currency, defaultBudget });
+    }
+
+    // 4. Restore History
+    const historyList = [];
+    const tripEls = xmlDoc.querySelectorAll("History > Trip");
+    tripEls.forEach(tEl => {
+      const tripItems = [];
+      const tripItemEls = tEl.querySelectorAll("Items > Item");
+      tripItemEls.forEach(tiEl => {
+        tripItems.push({
+          name: tiEl.getAttribute('name') || '',
+          category: tiEl.getAttribute('category') || 'otros',
+          quantity: parseFloat(tiEl.getAttribute('quantity')) || 1,
+          unit: tiEl.getAttribute('unit') || 'unidad',
+          price: parseFloat(tiEl.getAttribute('price')) || 0,
+          subtotal: parseFloat(tiEl.getAttribute('subtotal')) || 0
+        });
+      });
+
+      historyList.push({
+        id: tEl.getAttribute('id') || ('trip_' + Date.now().toString(36)),
+        storeId: tEl.getAttribute('storeId') || 'supermercado',
+        storeName: tEl.getAttribute('storeName') || 'Comercio',
+        storeIcon: tEl.getAttribute('storeIcon') || '🏬',
+        date: tEl.getAttribute('date') || new Date().toISOString(),
+        formattedDate: tEl.getAttribute('formattedDate') || '',
+        totalSpent: parseFloat(tEl.getAttribute('totalSpent')) || 0,
+        itemCount: parseInt(tEl.getAttribute('itemCount')) || tripItems.length,
+        items: tripItems
+      });
+    });
+
+    if (historyList.length > 0) {
+      await HistoryManager.saveHistory(historyList);
+    }
+
+    return {
+      success: true,
+      totalStores,
+      totalItems: totalRestoredItems,
+      historyTrips: historyList.length,
+      exportedAt: exportedAt
+    };
+  },
+
+  async restoreBackupJSON(jsonString) {
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonString);
+    } catch (e) {
+      throw new Error('Formato JSON inválido.');
     }
 
     let totalRestoredItems = 0;
     let totalStores = 0;
 
-    // 1. Restore Custom Stores
     if (parsed.customStores && typeof parsed.customStores === 'object') {
       await this.saveCustomStores(parsed.customStores);
     }
 
-    // 2. Restore Store Catalogs
     const catalogsToRestore = parsed.storesCatalogs || parsed.stores || {};
     for (const [storeId, catalogArray] of Object.entries(catalogsToRestore)) {
       if (Array.isArray(catalogArray)) {
@@ -228,12 +393,10 @@ const StorageManager = {
       }
     }
 
-    // 3. Restore Settings
     if (parsed.settings) {
       await this.saveSettings(parsed.settings);
     }
 
-    // 4. Restore History
     let historyCount = 0;
     if (Array.isArray(parsed.history)) {
       await HistoryManager.saveHistory(parsed.history);
@@ -242,7 +405,7 @@ const StorageManager = {
 
     return {
       success: true,
-      totalStores: totalStores,
+      totalStores,
       totalItems: totalRestoredItems,
       historyTrips: historyCount,
       exportedAt: parsed.exportedAt || 'Desconocida'

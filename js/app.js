@@ -101,7 +101,7 @@ class ShoppinglistOneApp {
     this.downloadBackupBtn = document.getElementById('downloadBackupBtn');
     this.copyBackupBtn = document.getElementById('copyBackupBtn');
     this.backupFileInput = document.getElementById('backupFileInput');
-    this.backupJsonInput = document.getElementById('backupJsonInput');
+    this.backupXmlInput = document.getElementById('backupXmlInput');
     this.restoreBackupBtn = document.getElementById('restoreBackupBtn');
 
     // Custom Item Modal
@@ -636,19 +636,19 @@ class ShoppinglistOneApp {
 
   openBackupModal() {
     this.backupFileInput.value = '';
-    this.backupJsonInput.value = '';
+    if (this.backupXmlInput) this.backupXmlInput.value = '';
     this.backupModal.classList.add('active');
   }
 
   async handleDownloadBackup() {
     try {
-      const backupJson = await StorageManager.createBackup();
+      const backupXml = await StorageManager.createBackup();
       const now = new Date();
       const dateStr = now.toISOString().slice(0, 10);
       const timeStr = now.toTimeString().slice(0, 5).replace(':', '');
-      const filename = `ShoppinglistOne_backup_${dateStr}_${timeStr}.json`;
+      const filename = `ShoppinglistOne_backup_${dateStr}_${timeStr}.xml`;
 
-      const blob = new Blob([backupJson], { type: 'application/json;charset=utf-8;' });
+      const blob = new Blob([backupXml], { type: 'application/xml;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.setAttribute('href', url);
@@ -658,52 +658,52 @@ class ShoppinglistOneApp {
       link.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert('Error al generar respaldo: ' + e.message);
+      alert('Error al generar respaldo XML: ' + e.message);
     }
   }
 
   async handleCopyBackup() {
     try {
-      const backupJson = await StorageManager.createBackup();
-      await navigator.clipboard.writeText(backupJson);
-      alert('¡Copia de seguridad copiada al portapapeles! Puedes guardarla en un bloc de notas o enviarla.');
+      const backupXml = await StorageManager.createBackup();
+      await navigator.clipboard.writeText(backupXml);
+      alert('¡Copia de seguridad XML copiada al portapapeles! Puedes guardarla o enviarla.');
     } catch (e) {
       alert('Error al copiar respaldo: ' + e.message);
     }
   }
 
   async handleRestoreBackup() {
-    let jsonContent = this.backupJsonInput.value.trim();
+    let xmlContent = this.backupXmlInput ? this.backupXmlInput.value.trim() : '';
 
     // If file input has a file selected, read from file
     if (this.backupFileInput.files && this.backupFileInput.files.length > 0) {
       const file = this.backupFileInput.files[0];
       try {
-        jsonContent = await file.text();
+        xmlContent = await file.text();
       } catch (err) {
-        alert('Error al leer el archivo de respaldo seleccionado.');
+        alert('Error al leer el archivo XML de respaldo seleccionado.');
         return;
       }
     }
 
-    if (!jsonContent) {
-      alert('Por favor selecciona un archivo .json o pega el texto JSON de respaldo.');
+    if (!xmlContent) {
+      alert('Por favor selecciona un archivo .xml o pega el texto XML de respaldo.');
       return;
     }
 
-    if (!confirm('⚠️ RESTAURAR RESPALDO:\nEsta acción actualizará tus catálogos, listas e historial con la copia de seguridad.\n\n¿Deseas continuar?')) {
+    if (!confirm('⚠️ RESTAURAR RESPALDO:\nEsta acción actualizará tus catálogos, listas e historial con la copia de seguridad XML.\n\n¿Deseas continuar?')) {
       return;
     }
 
     try {
-      const result = await StorageManager.restoreBackup(jsonContent);
+      const result = await StorageManager.restoreBackup(xmlContent);
       if (result.success) {
-        alert(`✅ ¡Respaldo restaurado con éxito!\n\n• Tiendas actualizadas: ${result.totalStores}\n• Productos restaurados: ${result.totalItems}\n• Viajes en historial: ${result.historyTrips}`);
+        alert(`✅ ¡Respaldo XML restaurado con éxito!\n\n• Tiendas actualizadas: ${result.totalStores}\n• Productos restaurados: ${result.totalItems}\n• Viajes en historial: ${result.historyTrips}`);
         this.closeAllModals();
         await this.postAuthUnlock();
       }
     } catch (e) {
-      alert('❌ Error al restaurar respaldo: ' + e.message);
+      alert('❌ Error al restaurar respaldo XML: ' + e.message);
     }
   }
 

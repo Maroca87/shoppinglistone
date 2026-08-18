@@ -268,7 +268,7 @@
           <button type="submit" class="btn-primary" style="flex: 2; justify-content: center;">
             💾 Guardar Cambios
           </button>
-          <button type="button" id="deleteItemBtn" class="btn-danger-outline" style="flex: 1; justify-content: center;" onclick="app.deleteCurrentEditingItem()">
+          <button type="button" id="deleteItemBtn" class="btn-danger-outline" style="flex: 1; justify-content: center;">
             🗑️ Eliminar
           </button>
         </div>
@@ -295,7 +295,7 @@
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
           <button type="button" id="downloadBackupBtn" class="btn-primary" style="flex: 1; justify-content: center;">
-            📥 Descargar Respaldo (.json)
+            📥 Descargar Respaldo (.xml)
           </button>
           <button type="button" id="copyBackupBtn" class="btn-secondary" style="flex: 1; justify-content: center;">
             📋 Copiar al Portapapeles
@@ -309,18 +309,18 @@
           <span class="backup-badge-icon">🔄</span>
           <div>
             <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Restaurar Copia de Seguridad</h4>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Selecciona un archivo JSON de respaldo de ShoppinglistOne para recuperar tus datos.</p>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Selecciona un archivo XML de respaldo de ShoppinglistOne para recuperar tus datos.</p>
           </div>
         </div>
         
         <div class="form-group">
-          <label class="form-label">Cargar Archivo (.json):</label>
-          <input type="file" id="backupFileInput" accept=".json" class="form-control" style="padding-top: 8px;">
+          <label class="form-label">Cargar Archivo (.xml):</label>
+          <input type="file" id="backupFileInput" accept=".xml,text/xml" class="form-control" style="padding-top: 8px;">
         </div>
 
         <div class="form-group" style="margin-top: 6px;">
-          <label class="form-label">O pegar texto JSON de respaldo:</label>
-          <textarea id="backupJsonInput" class="form-control" placeholder='Pega aquí el contenido JSON del respaldo...' style="height: 90px; font-family: monospace; font-size: 0.8rem;"></textarea>
+          <label class="form-label">O pegar texto XML de respaldo:</label>
+          <textarea id="backupXmlInput" class="form-control" placeholder='Pega aquí el contenido XML del respaldo...' style="height: 90px; font-family: monospace; font-size: 0.8rem;"></textarea>
         </div>
 
         <button type="button" id="restoreBackupBtn" class="btn-secondary" style="width: 100%; justify-content: center; font-weight: 700; margin-top: 4px;">
