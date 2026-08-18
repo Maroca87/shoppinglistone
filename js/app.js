@@ -1250,7 +1250,7 @@ class ShoppinglistOneApp {
 
         <form id="newTodoForm" onsubmit="event.preventDefault(); app.handleAddTodoSubmit();" class="todo-input-group">
           <input type="text" id="newTodoInput" class="form-control" placeholder="¿Qué necesitas comprar o recordar?" required autocomplete="off">
-          <button type="submit" class="btn-primary" style="flex: 0 0 auto; padding: 0 18px; height: 42px;">
+          <button type="submit" class="btn-primary" style="flex: 0 0 auto; padding: 0 16px; height: 44px;">
             <span>➕ Agregar</span>
           </button>
         </form>
