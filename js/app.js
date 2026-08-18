@@ -880,7 +880,7 @@ class ShoppinglistOneApp {
 
     this.spentEl.textContent = StorageManager.formatCurrency(spent);
     this.totalEl.textContent = StorageManager.formatCurrency(total);
-    this.budgetBadge.textContent = `Presupuesto: ${StorageManager.formatCurrency(this.budget)}`;
+    this.budgetBadge.textContent = `✏️ Presupuesto: ${StorageManager.formatCurrency(this.budget)}`;
 
     this.shoppingBadge.textContent = selectedItems.length;
     this.updateTodoBadge();
