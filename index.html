@@ -7,14 +7,22 @@
   <meta name="description" content="ShoppinglistOne - Aplicación inteligente para compras multi-tienda (Supermercado, Ferretería, Comercial, Farmacia, Veterinaria) con cifrado, respaldos y control de presupuesto.">
   
   <!-- PWA & Mobile Meta Tags -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json?v=10">
   <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#2563eb">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2563eb">
+  <meta name="msapplication-TileColor" content="#2563eb">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="ShoppinglistOne">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=10">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152.png?v=10">
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/apple-touch-icon-120.png?v=10">
+  <link rel="apple-touch-icon-precomposed" href="icons/apple-touch-icon-precomposed.png?v=10">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png?v=10">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=10">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png?v=10">
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/variables.css">
@@ -26,7 +34,7 @@
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
       <div class="splash-glow"></div>
-      <img src="icons/apple-touch-icon.png" alt="ShoppinglistOne Logo" class="splash-logo">
+      <img src="icons/apple-touch-icon.png?v=10" alt="ShoppinglistOne Logo" class="splash-logo">
       <h1 class="splash-title">ShoppinglistOne</h1>
       <p class="splash-subtitle">Multi-Tienda Inteligente & Segura</p>
       <div class="splash-loader-bar">
@@ -39,7 +47,7 @@
   <div id="authOverlay" class="auth-overlay" style="display: flex;">
     <div class="auth-card">
       <div class="auth-header-logo">
-        <img src="icons/apple-touch-icon.png" alt="Logo" class="auth-logo-img">
+        <img src="icons/apple-touch-icon.png?v=10" alt="Logo" class="auth-logo-img">
       </div>
       <h2 id="authMainTitle" class="auth-brand-title">ShoppinglistOne</h2>
       
@@ -131,7 +139,7 @@
   <header class="app-header">
     <div class="header-top">
       <div class="brand-title">
-        <img src="icons/apple-touch-icon.png" alt="Logo" class="brand-logo-img">
+        <img src="icons/apple-touch-icon.png?v=10" alt="Logo" class="brand-logo-img">
         <span id="brandTitleText">ShoppinglistOne</span>
       </div>
       <div class="header-actions">

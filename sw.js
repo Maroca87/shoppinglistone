@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shoppinglistone-v9';
+const CACHE_NAME = 'shoppinglistone-v11';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -17,7 +17,13 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './icons/apple-touch-icon-180.png',
+  './icons/apple-touch-icon-152.png',
+  './icons/apple-touch-icon-120.png',
+  './icons/apple-touch-icon-precomposed.png',
+  './icons/favicon-32x32.png',
+  './icons/favicon.png'
 ];
 
 self.addEventListener('install', (event) => {
