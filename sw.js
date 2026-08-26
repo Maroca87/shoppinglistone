@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shoppinglistone-v16';
+const CACHE_NAME = 'shoppinglistone-v17';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

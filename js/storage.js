@@ -1,12 +1,11 @@
 /**
  * ShoppinglistOne - Gestor de Almacenamiento, Respaldo y Reportes
  * Gestiona catálogos cifrados en reposo, tiendas personalizadas, ajustes de usuario,
- * historial de compras, lista rápida To-Do y respaldos completos en XML (.xml) y JSON.
+ * historial de compras y respaldos completos en XML (.xml) y JSON.
  */
 const ENCRYPTED_STORES_PREFIX = 'smart_shop_store_encrypted_v3_';
 const ENCRYPTED_CUSTOM_STORES_KEY = 'smart_shop_custom_stores_v1';
 const ENCRYPTED_APP_SETTINGS_KEY = 'smart_shop_app_settings_v1';
-const ENCRYPTED_TODO_LIST_KEY = 'smart_shop_todo_list_v1';
 
 const StorageManager = {
   activeCurrency: '₡',
@@ -237,49 +236,11 @@ const StorageManager = {
   },
 
   // ==========================================
-  // MÓDULO TO-DO (LISTAS RÁPIDAS E INESPERADAS)
-  // ==========================================
-
-  /**
-   * Carga y descifra la lista de tareas/compras rápidas To-Do.
-   * @returns {Promise<Array>} Lista de elementos To-Do.
-   */
-  async loadTodoList() {
-    try {
-      const encrypted = localStorage.getItem(ENCRYPTED_TODO_LIST_KEY);
-      if (encrypted && AuthManager.activeCryptoKey) {
-        const payloadObj = JSON.parse(encrypted);
-        const decrypted = await SecurityModule.decryptData(payloadObj, AuthManager.activeCryptoKey);
-        if (decrypted && Array.isArray(decrypted)) return decrypted;
-      }
-      return [];
-    } catch (e) {
-      console.error('Error al cargar lista To-Do:', e);
-      return [];
-    }
-  },
-
-  /**
-   * Cifra y guarda la lista To-Do en el almacenamiento local.
-   * @param {Array} todoList - Lista de tareas/notas.
-   */
-  async saveTodoList(todoList) {
-    try {
-      if (AuthManager.activeCryptoKey) {
-        const encrypted = await SecurityModule.encryptData(todoList, AuthManager.activeCryptoKey);
-        localStorage.setItem(ENCRYPTED_TODO_LIST_KEY, JSON.stringify(encrypted));
-      }
-    } catch (e) {
-      console.error('Error al guardar lista To-Do:', e);
-    }
-  },
-
-  // ==========================================
   // XML BACKUP & RESTORE MODULE (MÓDULO DE RESPALDOS XML)
   // ==========================================
 
   /**
-   * Genera un archivo de respaldo XML con todas las tiendas, catálogos, historial, To-Do y ajustes.
+   * Genera un archivo de respaldo XML con todas las tiendas, catálogos, historial y ajustes.
    * @returns {Promise<string>} Contenido del documento XML generado.
    */
   async createBackup() {
@@ -291,7 +252,6 @@ const StorageManager = {
     const allStores = { ...DEFAULT_STORES, ...customStores };
     const settings = await this.loadSettings();
     const history = await HistoryManager.loadHistory();
-    const todoList = await this.loadTodoList();
     const userConfig = AuthManager.getUserConfig();
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
@@ -343,13 +303,6 @@ const StorageManager = {
       xml += `    </Trip>\n`;
     }
     xml += `  </History>\n`;
-
-    // Lista rápida To-Do
-    xml += `  <TodoList>\n`;
-    for (const todo of todoList) {
-      xml += `    <Todo id="${this.escapeXml(todo.id)}" text="${this.escapeXml(todo.text)}" completed="${Boolean(todo.completed)}" createdAt="${this.escapeXml(todo.createdAt || '')}" />\n`;
-    }
-    xml += `  </TodoList>\n`;
 
     xml += `</ShoppinglistOneBackup>\n`;
     return xml;
@@ -488,28 +441,11 @@ const StorageManager = {
       await HistoryManager.saveHistory(historyList);
     }
 
-    // 5. Restaurar Lista To-Do
-    const todoList = [];
-    const todoEls = xmlDoc.querySelectorAll("TodoList > Todo");
-    todoEls.forEach(tEl => {
-      todoList.push({
-        id: tEl.getAttribute('id') || ('todo_' + Date.now().toString(36) + Math.random().toString(36).slice(2)),
-        text: tEl.getAttribute('text') || '',
-        completed: tEl.getAttribute('completed') === 'true',
-        createdAt: tEl.getAttribute('createdAt') || new Date().toISOString()
-      });
-    });
-
-    if (todoList.length > 0) {
-      await this.saveTodoList(todoList);
-    }
-
     return {
       success: true,
       totalStores,
       totalItems: totalRestoredItems,
       historyTrips: historyList.length,
-      todoItems: todoList.length,
       exportedAt: exportedAt
     };
   },
@@ -556,18 +492,11 @@ const StorageManager = {
       historyCount = parsed.history.length;
     }
 
-    let todoCount = 0;
-    if (Array.isArray(parsed.todoList)) {
-      await this.saveTodoList(parsed.todoList);
-      todoCount = parsed.todoList.length;
-    }
-
     return {
       success: true,
       totalStores,
       totalItems: totalRestoredItems,
       historyTrips: historyCount,
-      todoItems: todoCount,
       exportedAt: parsed.exportedAt || 'Desconocida'
     };
   },
@@ -609,23 +538,6 @@ const StorageManager = {
     const total = selectedItems.reduce((acc, i) => acc + ((i.price || 0) * (i.quantity || 1)), 0);
     text += `💰 *Total Estimado:* ${StorageManager.formatCurrency(total)}\n`;
     text += '📱 _Generado desde ShoppinglistOne PWA_';
-    return text;
-  },
-
-  /**
-   * Exporta la lista rápida To-Do a formato de texto para compartir.
-   * @param {Array} todoList - Lista To-Do actual.
-   * @returns {string} Texto formateado.
-   */
-  exportTodoToText(todoList) {
-    if (!todoList || todoList.length === 0) return 'La lista To-Do está vacía.';
-    let text = '📝 *LISTA RÁPIDA / TO-DO - SHOPPINGLISTONE*\n';
-    text += '───────────────\n\n';
-    todoList.forEach(t => {
-      const icon = t.completed ? '✅' : '◻️';
-      text += `${icon} ${t.text}\n`;
-    });
-    text += '\n📱 _Generado desde ShoppinglistOne_';
     return text;
   }
 };

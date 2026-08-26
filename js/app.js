@@ -11,8 +11,7 @@ class ShoppinglistOneApp {
     this.catalog = [];
     this.budget = 35000;
     this.history = [];
-    this.todoList = [];
-    this.currentMode = 'catalog'; // 'catalog', 'shopping', 'history', 'todo'
+    this.currentMode = 'catalog'; // 'catalog', 'shopping', 'history'
     this.selectedCatFilter = 'all';
     this.selectedHistoryStoreFilter = 'all';
     this.searchTerm = '';
@@ -37,13 +36,11 @@ class ShoppinglistOneApp {
     this.settingsBtn = document.getElementById('settingsBtn');
     this.logoutBtn = document.getElementById('logoutBtn');
 
-    // Navigation Tabs (4 pestañas)
+    // Navigation Tabs (3 pestañas)
     this.tabCatalog = document.getElementById('tabCatalog');
     this.tabShopping = document.getElementById('tabShopping');
     this.tabHistory = document.getElementById('tabHistory');
-    this.tabTodo = document.getElementById('tabTodo');
     this.shoppingBadge = document.getElementById('shoppingBadge');
-    this.todoBadge = document.getElementById('todoBadge');
 
     // Store Selector Container
     this.storeSelectorBar = document.getElementById('storeSelectorBar');
@@ -208,7 +205,6 @@ class ShoppinglistOneApp {
     this.tabCatalog.addEventListener('click', () => this.switchMode('catalog'));
     this.tabShopping.addEventListener('click', () => this.switchMode('shopping'));
     this.tabHistory.addEventListener('click', () => this.switchMode('history'));
-    if (this.tabTodo) this.tabTodo.addEventListener('click', () => this.switchMode('todo'));
 
     // Search input
     this.searchInput.addEventListener('input', (e) => {
@@ -457,7 +453,6 @@ class ShoppinglistOneApp {
   handleLockSession() {
     this.catalog = [];
     this.history = [];
-    this.todoList = [];
     this.contentContainer.innerHTML = '';
     this.loginPasswordInput.value = '';
     this.switchAuthView('login');
@@ -479,7 +474,6 @@ class ShoppinglistOneApp {
 
     this.budget = settings.defaultBudget || 35000;
     this.history = await HistoryManager.loadHistory();
-    this.todoList = await StorageManager.loadTodoList();
     await this.switchStore(this.currentStoreId);
   }
 
@@ -545,7 +539,6 @@ class ShoppinglistOneApp {
     this.tabCatalog.classList.toggle('active', mode === 'catalog');
     this.tabShopping.classList.toggle('active', mode === 'shopping');
     this.tabHistory.classList.toggle('active', mode === 'history');
-    if (this.tabTodo) this.tabTodo.classList.toggle('active', mode === 'todo');
     this.render();
   }
 
@@ -883,7 +876,6 @@ class ShoppinglistOneApp {
     this.budgetBadge.textContent = `✏️ Presupuesto: ${StorageManager.formatCurrency(this.budget)}`;
 
     this.shoppingBadge.textContent = selectedItems.length;
-    this.updateTodoBadge();
 
     const percentage = this.budget > 0 ? Math.min((spent / this.budget) * 100, 100) : 0;
     this.progressBarFill.style.width = `${percentage}%`;
@@ -914,11 +906,6 @@ class ShoppinglistOneApp {
       this.searchRow.style.display = 'none';
       this.statsCard.style.display = 'none';
       this.renderHistoryMode();
-    } else if (this.currentMode === 'todo') {
-      this.storeSelectorBar.style.display = 'none';
-      this.searchRow.style.display = 'none';
-      this.statsCard.style.display = 'none';
-      this.renderTodoMode();
     }
   }
 
@@ -1211,204 +1198,6 @@ class ShoppinglistOneApp {
   setHistoryStoreFilter(filterId) {
     this.selectedHistoryStoreFilter = filterId;
     this.render();
-  }
-
-  // ==========================================
-  // MÓDULO TO-DO (LISTAS RÁPIDAS E INESPERADAS)
-  // ==========================================
-
-  renderTodoMode() {
-    const pendingCount = this.todoList.filter(t => !t.completed).length;
-
-    this.bottomBarContent.innerHTML = `
-      <button class="btn-primary" onclick="document.getElementById('newTodoInput')?.focus()">
-        <span>➕</span>
-        <span>Escribir Pendiente</span>
-      </button>
-      ${this.todoList.length > 0 ? `
-        <button class="btn-secondary" onclick="app.copyTodoListToClipboard()">
-          <span>📋 Copiar Lista</span>
-        </button>
-      ` : ''}
-    `;
-
-    let html = `
-      <div class="todo-card">
-        <div class="todo-header-row">
-          <div class="todo-header-title">
-            <span>📝</span>
-            <span>Lista Rápida / To-Do</span>
-          </div>
-          <span style="font-size: 0.82rem; color: var(--primary); font-weight: 700;">
-            ${pendingCount} pendiente${pendingCount === 1 ? '' : 's'}
-          </span>
-        </div>
-
-        <p style="font-size: 0.84rem; color: var(--text-muted); margin: -4px 0 6px 0;">
-          Anota compras inesperadas, encargos o cosas por recordar.
-        </p>
-
-        <form id="newTodoForm" onsubmit="event.preventDefault(); app.handleAddTodoSubmit();" class="todo-input-group">
-          <input type="text" id="newTodoInput" class="form-control" placeholder="¿Qué necesitas comprar o recordar?" required autocomplete="off">
-          <button type="submit" class="btn-primary" style="flex: 0 0 auto; padding: 0 16px; height: 44px;">
-            <span>➕ Agregar</span>
-          </button>
-        </form>
-
-        ${this.todoList.length === 0 ? `
-          <div class="empty-state" style="padding: 28px 10px;">
-            <span class="empty-icon">📝</span>
-            <span class="empty-title">Sin pendientes en la lista</span>
-            <span class="empty-desc">Escribe tus compras o tareas rápidas arriba para recordarlas fácilmente.</span>
-          </div>
-        ` : `
-          <ul class="todo-items-list">
-            ${this.todoList.map(item => `
-              <li class="todo-item-row ${item.completed ? 'completed' : ''}">
-                <div class="todo-item-left" onclick="app.toggleTodoItem('${item.id}')">
-                  <div class="todo-checkbox">
-                    ${item.completed ? '✓' : ''}
-                  </div>
-                  <span class="todo-item-text">${SecurityModule.sanitizeInput(item.text)}</span>
-                </div>
-                <div class="todo-item-actions">
-                  <button class="btn-small" style="color: var(--primary);" onclick="app.transferTodoToShopping('${item.id}')" title="Pasar a lista de compras de la tienda actual">
-                    🛒
-                  </button>
-                  <button class="btn-small" style="color: var(--danger);" onclick="app.deleteTodoItem('${item.id}')" title="Eliminar de la lista">
-                    🗑️
-                  </button>
-                </div>
-              </li>
-            `).join('')}
-          </ul>
-
-          <div class="todo-tools-bar">
-            <button class="pill-btn" onclick="app.clearCompletedTodos()" title="Eliminar las tareas marcadas como listas">
-              🧹 Limpiar Completadas
-            </button>
-            <button class="pill-btn" onclick="app.copyTodoListToClipboard()" title="Copiar toda la lista para WhatsApp">
-              📋 Copiar Lista
-            </button>
-            <button class="pill-btn" style="color: var(--danger);" onclick="app.clearAllTodos()" title="Borrar toda la lista">
-              🗑️ Vaciar Lista
-            </button>
-          </div>
-        `}
-      </div>
-    `;
-
-    this.contentContainer.innerHTML = html;
-  }
-
-  async handleAddTodoSubmit() {
-    const input = document.getElementById('newTodoInput');
-    if (!input) return;
-    const text = input.value.trim();
-    if (!text) return;
-
-    await this.addTodoItem(text);
-    input.value = '';
-    input.focus();
-  }
-
-  async addTodoItem(text) {
-    const cleanText = SecurityModule.sanitizeInput(text.trim());
-    if (!cleanText) return;
-
-    const newTodo = {
-      id: 'todo_' + Date.now().toString(36) + Math.random().toString(36).slice(2),
-      text: cleanText,
-      completed: false,
-      createdAt: new Date().toISOString()
-    };
-
-    this.todoList.unshift(newTodo);
-    await StorageManager.saveTodoList(this.todoList);
-    this.render();
-  }
-
-  async toggleTodoItem(id) {
-    const item = this.todoList.find(t => t.id === id);
-    if (item) {
-      item.completed = !item.completed;
-      await StorageManager.saveTodoList(this.todoList);
-      this.render();
-    }
-  }
-
-  async deleteTodoItem(id) {
-    this.todoList = this.todoList.filter(t => t.id !== id);
-    await StorageManager.saveTodoList(this.todoList);
-    this.render();
-  }
-
-  async clearCompletedTodos() {
-    const prevCount = this.todoList.length;
-    this.todoList = this.todoList.filter(t => !t.completed);
-    if (this.todoList.length !== prevCount) {
-      await StorageManager.saveTodoList(this.todoList);
-      this.render();
-    }
-  }
-
-  async clearAllTodos() {
-    if (this.todoList.length === 0) return;
-    if (confirm('¿Estás seguro de que deseas vaciar toda la lista To-Do?')) {
-      this.todoList = [];
-      await StorageManager.saveTodoList(this.todoList);
-      this.render();
-    }
-  }
-
-  async copyTodoListToClipboard() {
-    const text = StorageManager.exportTodoToText(this.todoList);
-    try {
-      await navigator.clipboard.writeText(text);
-      alert('¡Lista To-Do copiada al portapapeles! Lista para pegar en WhatsApp o notas.');
-    } catch (e) {
-      alert('Contenido:\n\n' + text);
-    }
-  }
-
-  async transferTodoToShopping(id) {
-    const item = this.todoList.find(t => t.id === id);
-    if (!item) return;
-
-    // Agregar como producto seleccionado a la tienda activa
-    const detectedCat = autoDetectCategory(item.text, this.currentStoreId);
-    const newProduct = {
-      id: 'item_from_todo_' + Date.now().toString(36),
-      name: item.text,
-      category: detectedCat,
-      price: 0,
-      quantity: 1,
-      unit: 'unidad',
-      selected: true,
-      completed: false
-    };
-
-    this.catalog.unshift(newProduct);
-    await StorageManager.saveCatalog(this.currentStoreId, this.catalog);
-
-    // Marcar como completado en To-Do
-    item.completed = true;
-    await StorageManager.saveTodoList(this.todoList);
-
-    const storeInfo = STORES[this.currentStoreId] || STORES.supermercado;
-    alert(`"${item.text}" se ha agregado a tu lista de compras en ${storeInfo.name}.`);
-    this.render();
-  }
-
-  updateTodoBadge() {
-    if (!this.todoBadge) return;
-    const pendingCount = this.todoList.filter(t => !t.completed).length;
-    if (pendingCount > 0) {
-      this.todoBadge.textContent = pendingCount;
-      this.todoBadge.style.display = 'inline-block';
-    } else {
-      this.todoBadge.style.display = 'none';
-    }
   }
 }
 
