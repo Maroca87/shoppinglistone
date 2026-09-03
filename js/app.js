@@ -31,10 +31,8 @@ class ShoppinglistOneApp {
 
     // Header Elements
     this.brandTitleText = document.getElementById('brandTitleText');
-    this.backupBtn = document.getElementById('backupBtn');
     this.exportBtn = document.getElementById('exportBtn');
     this.settingsBtn = document.getElementById('settingsBtn');
-    this.logoutBtn = document.getElementById('logoutBtn');
 
     // Navigation Tabs (3 pestañas)
     this.tabCatalog = document.getElementById('tabCatalog');
@@ -126,6 +124,7 @@ class ShoppinglistOneApp {
     this.currentPwdInput = document.getElementById('pwdCurrent');
     this.newPwdInput = document.getElementById('pwdNew');
     this.confirmPwdInput = document.getElementById('pwdConfirm');
+    this.settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
 
     // Budget Modal
     this.budgetModal = document.getElementById('budgetModal');
@@ -223,11 +222,19 @@ class ShoppinglistOneApp {
     });
 
     // Header buttons
-    this.backupBtn.addEventListener('click', () => this.openBackupModal());
-    this.exportBtn.addEventListener('click', () => this.openExportModal());
-    this.settingsBtn.addEventListener('click', () => this.openSettingsModal());
-    this.logoutBtn.addEventListener('click', () => AuthManager.logout());
-    this.budgetBadge.addEventListener('click', () => this.openBudgetModal());
+    if (this.exportBtn) this.exportBtn.addEventListener('click', () => this.openExportModal());
+    if (this.settingsBtn) this.settingsBtn.addEventListener('click', () => this.openSettingsModal());
+    if (this.budgetBadge) this.budgetBadge.addEventListener('click', () => this.openBudgetModal());
+
+    // Settings Logout button
+    if (this.settingsLogoutBtn) {
+      this.settingsLogoutBtn.addEventListener('click', () => {
+        if (confirm('¿Deseas cerrar tu sesión activa en ShoppinglistOne?')) {
+          this.closeAllModals();
+          AuthManager.logout();
+        }
+      });
+    }
 
     // Close modals
     document.querySelectorAll('.modal-close').forEach(btn => {
