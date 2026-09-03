@@ -104,6 +104,46 @@ const HistoryManager = {
     return { totalSpent, totalTrips, avgSpent, topStore };
   },
 
+  // Export history as formatted text (WhatsApp / Share) with every bought item and totals
+  exportToText(history) {
+    if (!history || history.length === 0) return '';
+    
+    let text = `🛍️ *HISTORIAL DE COMPRAS - ShoppinglistOne*\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    history.forEach((trip, index) => {
+      text += `${trip.storeIcon || '🏬'} *${(trip.storeName || 'Comercio').toUpperCase()}*\n`;
+      text += `📅 _${trip.formattedDate || ''}_\n`;
+      text += `───────────────────\n`;
+      
+      if (trip.items && trip.items.length > 0) {
+        trip.items.forEach(item => {
+          const qty = `${item.quantity || 1} ${item.unit || 'unid'}`.trim();
+          const itemSubtotal = item.subtotal !== undefined 
+            ? item.subtotal 
+            : ((item.price || 0) * (item.quantity || 1));
+          const formattedSubtotal = StorageManager.formatCurrency(itemSubtotal);
+          text += `• ${item.name} (${qty}) - ${formattedSubtotal}\n`;
+        });
+      } else {
+        text += `• (Sin detalle de productos)\n`;
+      }
+      
+      text += `\n💰 *Total de la Compra:* ${StorageManager.formatCurrency(trip.totalSpent)}\n`;
+      if (index < history.length - 1) {
+        text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+      }
+    });
+
+    const stats = this.calculateStats(history);
+    text += `\n📊 *RESUMEN ACUMULADO:*\n`;
+    text += `• Total Gastado: ${StorageManager.formatCurrency(stats.totalSpent)}\n`;
+    text += `• Compras Realizadas: ${stats.totalTrips}\n`;
+    text += `\n📱 _Generado desde ShoppinglistOne PWA_`;
+
+    return text;
+  },
+
   // Export history as a ultra-legible high-contrast report
   exportToHTML(history) {
     if (!history || history.length === 0) return '';

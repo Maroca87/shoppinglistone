@@ -631,7 +631,7 @@ class ShoppinglistOneApp {
       price: parseFloat(this.customPriceInput.value) || 0,
       quantity: parseFloat(this.customQtyInput.value) || 1,
       unit: this.customUnitSelect.value || 'unidad',
-      selected: true,
+      selected: false,
       completed: false
     };
 
@@ -816,33 +816,41 @@ class ShoppinglistOneApp {
     this.render();
   }
 
-  async shareReport() {
+  async shareReport(tripId = null) {
     if (!this.history || this.history.length === 0) {
       alert('El historial está vacío.');
       return;
     }
 
-    const htmlReport = HistoryManager.exportToHTML(this.history);
+    let listToShare = this.history;
+    if (tripId) {
+      listToShare = this.history.filter(t => t.id === tripId);
+    } else if (this.selectedHistoryStoreFilter !== 'all') {
+      listToShare = this.history.filter(t => t.storeId === this.selectedHistoryStoreFilter);
+    }
+
+    if (!listToShare || listToShare.length === 0) {
+      alert('No hay compras para compartir.');
+      return;
+    }
+
+    const textReport = HistoryManager.exportToText(listToShare);
 
     if (navigator.share) {
       try {
-        const stats = HistoryManager.calculateStats(this.history);
         await navigator.share({
-          title: 'Reporte de Compras - ShoppinglistOne',
-          text: `📊 Mi Reporte de Compras en ShoppinglistOne:\n• Total Gastado: ${StorageManager.formatCurrency(stats.totalSpent)}\n• Compras Realizadas: ${stats.totalTrips}\n• Promedio por viaje: ${StorageManager.formatCurrency(stats.avgSpent)}`
+          title: 'Historial de Compras - ShoppinglistOne',
+          text: textReport
         });
       } catch (err) {
-        console.log('Share canceled or not supported:', err);
+        if (err.name !== 'AbortError') {
+          this.exportTextArea.value = textReport;
+          this.exportModal.classList.add('active');
+        }
       }
     } else {
-      const blob = new Blob([htmlReport], { type: 'text/html;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `reporte_compras_${new Date().toISOString().slice(0,10)}.html`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      this.exportTextArea.value = textReport;
+      this.exportModal.classList.add('active');
     }
   }
 
@@ -1186,7 +1194,10 @@ class ShoppinglistOneApp {
             <button class="pill-btn" style="font-size: 0.75rem; padding: 4px 10px;" onclick="app.toggleTripExpand('${trip.id}')">
               ${isExpanded ? '▲ Ocultar Desglose' : '▼ Ver Desglose Completo'}
             </button>
-            <button class="btn-small" style="color: var(--danger);" onclick="app.deleteHistoryTrip('${trip.id}')" title="Eliminar del historial">🗑️</button>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button class="btn-small" onclick="app.shareReport('${trip.id}')" title="Compartir esta compra">📤</button>
+              <button class="btn-small" style="color: var(--danger);" onclick="app.deleteHistoryTrip('${trip.id}')" title="Eliminar del historial">🗑️</button>
+            </div>
           </div>
         </div>
       `;
