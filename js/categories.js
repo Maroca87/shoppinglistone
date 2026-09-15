@@ -51,6 +51,17 @@ const DEFAULT_CUSTOM_STORE_CATEGORIES = {
 let CATEGORIES = STORE_CATEGORIES.supermercado;
 
 function getStoreCategories(storeId) {
+  if (storeId === 'all') {
+    const combined = {};
+    for (const catMap of Object.values(STORE_CATEGORIES)) {
+      for (const [cId, cData] of Object.entries(catMap)) {
+        if (!combined[cId]) {
+          combined[cId] = cData;
+        }
+      }
+    }
+    return combined;
+  }
   return STORE_CATEGORIES[storeId] || DEFAULT_CUSTOM_STORE_CATEGORIES;
 }
 

@@ -148,7 +148,13 @@ class ShoppinglistOneApp {
   }
 
   renderStorePills() {
-    let html = '';
+    const activeAll = this.currentStoreId === 'all' ? 'active' : '';
+    let html = `
+      <button class="store-pill ${activeAll}" data-store="all">
+        <span>🌐</span>
+        <span>Todas</span>
+      </button>
+    `;
     for (const [sId, sData] of Object.entries(STORES)) {
       const activeClass = sId === this.currentStoreId ? 'active' : '';
       html += `
@@ -492,7 +498,20 @@ class ShoppinglistOneApp {
     this.currentStoreId = storeId;
     this.renderStorePills();
     this.updateStoreCategories();
-    this.catalog = await StorageManager.loadCatalog(this.currentStoreId);
+    await this.refreshCurrentCatalog();
+  }
+
+  async refreshCurrentCatalog() {
+    if (this.currentStoreId === 'all') {
+      const allCatalogsMap = await StorageManager.loadAllCatalogs();
+      this.catalog = [];
+      for (const [sId, items] of Object.entries(allCatalogsMap)) {
+        this.catalog.push(...items);
+      }
+    } else {
+      const cat = await StorageManager.loadCatalog(this.currentStoreId);
+      this.catalog = cat.map(i => ({ ...i, storeId: this.currentStoreId }));
+    }
     this.render();
   }
 
@@ -553,11 +572,12 @@ class ShoppinglistOneApp {
   // PRODUCT EDITING & DELETION
   // ==========================================
 
-  openEditItemModal(itemId) {
+  openEditItemModal(itemId, storeId) {
     const item = this.catalog.find(i => String(i.id) === String(itemId));
     if (!item) return;
 
     this.editingItemId = itemId;
+    this.editingItemStoreId = storeId || item.storeId || this.currentStoreId;
     this.editItemNameInput.value = item.name || '';
     this.editItemCategorySelect.value = item.category || 'otros';
     this.editItemPriceInput.value = item.price || 0;
@@ -567,56 +587,92 @@ class ShoppinglistOneApp {
     this.editItemModal.classList.add('active');
   }
 
+  async updateItemInStoreCatalog(itemId, storeId, updateFn) {
+    let sId = storeId;
+    if (!sId || sId === 'all') {
+      const foundItem = this.catalog.find(i => String(i.id) === String(itemId));
+      if (foundItem && foundItem.storeId) sId = foundItem.storeId;
+    }
+
+    if (!sId || sId === 'all') {
+      const allCatalogs = await StorageManager.loadAllCatalogs();
+      for (const [catStoreId, items] of Object.entries(allCatalogs)) {
+        const found = items.find(i => String(i.id) === String(itemId));
+        if (found) {
+          const cat = await StorageManager.loadCatalog(catStoreId);
+          const itemInCat = cat.find(i => String(i.id) === String(itemId));
+          if (itemInCat) {
+            updateFn(itemInCat);
+            await StorageManager.saveCatalog(catStoreId, cat);
+          }
+          break;
+        }
+      }
+    } else {
+      const cat = await StorageManager.loadCatalog(sId);
+      const itemInCat = cat.find(i => String(i.id) === String(itemId));
+      if (itemInCat) {
+        updateFn(itemInCat);
+        await StorageManager.saveCatalog(sId, cat);
+      }
+    }
+    await this.refreshCurrentCatalog();
+  }
+
   async saveEditedItem() {
     if (!this.editingItemId) return;
-    const item = this.catalog.find(i => String(i.id) === String(this.editingItemId));
-    if (item) {
+    await this.updateItemInStoreCatalog(this.editingItemId, this.editingItemStoreId, (item) => {
       item.name = SecurityModule.sanitizeInput(this.editItemNameInput.value.trim()) || item.name;
       item.category = this.editItemCategorySelect.value || item.category;
       item.price = parseFloat(this.editItemPriceInput.value) || 0;
       item.quantity = Math.max(1, parseFloat(this.editItemQtyInput.value) || 1);
       item.unit = this.editItemUnitSelect.value || item.unit;
-
-      await this.saveAndRender();
-    }
+    });
     this.closeAllModals();
   }
 
   async deleteCurrentEditingItem() {
     if (!this.editingItemId) return;
+    let itemName = 'este producto';
     const item = this.catalog.find(i => String(i.id) === String(this.editingItemId));
-    const itemName = item ? item.name : 'este producto';
+    if (item) itemName = item.name;
 
-    if (confirm(`¿Estás seguro de eliminar "${itemName}" del catálogo de esta tienda?`)) {
-      this.catalog = this.catalog.filter(i => String(i.id) !== String(this.editingItemId));
-      await this.saveAndRender();
+    if (confirm(`¿Estás seguro de eliminar "${itemName}" del catálogo?`)) {
+      let targetStoreId = this.editingItemStoreId || (item ? item.storeId : this.currentStoreId);
+      if (!targetStoreId || targetStoreId === 'all') {
+        const allCatalogs = await StorageManager.loadAllCatalogs();
+        for (const [catStoreId, items] of Object.entries(allCatalogs)) {
+          const found = items.find(i => String(i.id) === String(this.editingItemId));
+          if (found) {
+            await StorageManager.deleteItemFromCatalog(catStoreId, this.editingItemId);
+            break;
+          }
+        }
+      } else {
+        await StorageManager.deleteItemFromCatalog(targetStoreId, this.editingItemId);
+      }
       this.closeAllModals();
+      await this.refreshCurrentCatalog();
     }
   }
 
-  async toggleItemSelection(id) {
-    const item = this.catalog.find(i => i.id === id);
-    if (item) {
+  async toggleItemSelection(id, storeId) {
+    await this.updateItemInStoreCatalog(id, storeId, (item) => {
       item.selected = !item.selected;
       if (!item.selected) item.completed = false;
-      await this.saveAndRender();
-    }
+    });
   }
 
-  async changeQuantity(id, delta) {
-    const item = this.catalog.find(i => i.id === id);
-    if (item) {
+  async changeQuantity(id, delta, storeId) {
+    await this.updateItemInStoreCatalog(id, storeId, (item) => {
       item.quantity = Math.max(1, (item.quantity || 1) + delta);
-      await this.saveAndRender();
-    }
+    });
   }
 
-  async toggleItemBought(id) {
-    const item = this.catalog.find(i => i.id === id);
-    if (item) {
+  async toggleItemBought(id, storeId) {
+    await this.updateItemInStoreCatalog(id, storeId, (item) => {
       item.completed = !item.completed;
-      await this.saveAndRender();
-    }
+    });
   }
 
   openCustomItemModal() {
@@ -630,7 +686,8 @@ class ShoppinglistOneApp {
     const name = SecurityModule.sanitizeInput(this.customNameInput.value.trim());
     if (!name) return;
 
-    const detectedCat = this.customCategorySelect.value || autoDetectCategory(name, this.currentStoreId);
+    const targetStore = (this.currentStoreId && this.currentStoreId !== 'all') ? this.currentStoreId : 'supermercado';
+    const detectedCat = this.customCategorySelect.value || autoDetectCategory(name, targetStore);
     const newItem = {
       id: 'custom_' + Date.now().toString(36),
       name: name,
@@ -642,9 +699,12 @@ class ShoppinglistOneApp {
       completed: false
     };
 
-    this.catalog.unshift(newItem);
+    const targetCatalog = await StorageManager.loadCatalog(targetStore);
+    targetCatalog.unshift(newItem);
+    await StorageManager.saveCatalog(targetStore, targetCatalog);
+
     this.closeAllModals();
-    await this.saveAndRender();
+    await this.refreshCurrentCatalog();
   }
 
   // ==========================================
@@ -795,18 +855,36 @@ class ShoppinglistOneApp {
   // ==========================================
 
   async finishShoppingTrip() {
-    const selectedItems = this.catalog.filter(i => i.selected);
+    let selectedItems = [];
+    if (this.currentStoreId === 'all') {
+      selectedItems = await StorageManager.getAllSelectedItems();
+    } else {
+      const cat = await StorageManager.loadCatalog(this.currentStoreId);
+      selectedItems = cat.filter(i => i.selected).map(i => ({ ...i, storeId: this.currentStoreId }));
+    }
+
     if (selectedItems.length === 0) return;
 
-    const storeInfo = STORES[this.currentStoreId] || STORES.supermercado;
-    const totalSpent = selectedItems.filter(i => i.completed).reduce((acc, i) => acc + ((i.price || 0) * (i.quantity || 1)), 0);
+    const completedItems = selectedItems.filter(i => i.completed);
+    if (completedItems.length === 0) {
+      alert('Marca al menos un producto como comprado (✓) para finalizar el viaje de compras.');
+      return;
+    }
+
+    const totalSpent = completedItems.reduce((acc, i) => acc + ((i.price || 0) * (i.quantity || 1)), 0);
+    const storeInfo = STORES[this.currentStoreId] || { id: 'all', name: 'Compra Multi-Tienda', icon: '🌐' };
 
     if (confirm(`¿Deseas finalizar la compra en ${storeInfo.name} y registrar este viaje (${StorageManager.formatCurrency(totalSpent)}) en tu Historial?`)) {
-      await HistoryManager.addShoppingTrip(this.currentStoreId, selectedItems.filter(i => i.completed), totalSpent);
+      await HistoryManager.addShoppingTrip(this.currentStoreId, completedItems, totalSpent);
       this.history = await HistoryManager.loadHistory();
 
-      this.catalog = await StorageManager.resetShoppingTrip(this.currentStoreId, this.catalog, false);
-      await this.saveAndRender();
+      if (this.currentStoreId === 'all') {
+        await StorageManager.resetAllShoppingTrips(false);
+      } else {
+        await StorageManager.resetShoppingTrip(this.currentStoreId, await StorageManager.loadCatalog(this.currentStoreId), false);
+      }
+
+      await this.refreshCurrentCatalog();
       this.switchMode('history');
     }
   }
@@ -869,16 +947,18 @@ class ShoppinglistOneApp {
   }
 
   async saveAndRender() {
-    await StorageManager.saveCatalog(this.currentStoreId, this.catalog);
+    if (this.currentStoreId !== 'all') {
+      await StorageManager.saveCatalog(this.currentStoreId, this.catalog);
+    }
     this.render();
   }
 
-  renderStats() {
-    const selectedItems = this.catalog.filter(i => i.selected);
+  async renderStats() {
+    const allSelected = await StorageManager.getAllSelectedItems();
     let spent = 0;
     let total = 0;
 
-    selectedItems.forEach(item => {
+    allSelected.forEach(item => {
       const itemTotal = (item.price || 0) * (item.quantity || 1);
       total += itemTotal;
       if (item.completed) {
@@ -890,7 +970,7 @@ class ShoppinglistOneApp {
     this.totalEl.textContent = StorageManager.formatCurrency(total);
     this.budgetBadge.textContent = `✏️ Presupuesto: ${StorageManager.formatCurrency(this.budget)}`;
 
-    this.shoppingBadge.textContent = selectedItems.length;
+    this.shoppingBadge.textContent = allSelected.length;
 
     const percentage = this.budget > 0 ? Math.min((spent / this.budget) * 100, 100) : 0;
     this.progressBarFill.style.width = `${percentage}%`;
@@ -901,10 +981,10 @@ class ShoppinglistOneApp {
   // MAIN RENDER ENGINE
   // ==========================================
 
-  render() {
+  async render() {
     if (!AuthManager.activeCryptoKey) return;
 
-    this.renderStats();
+    await this.renderStats();
 
     if (this.currentMode === 'catalog') {
       this.storeSelectorBar.style.display = 'flex';
@@ -925,7 +1005,7 @@ class ShoppinglistOneApp {
   }
 
   renderCatalogMode() {
-    const storeInfo = STORES[this.currentStoreId] || STORES.supermercado;
+    const storeInfo = STORES[this.currentStoreId] || { name: 'Todas las Tiendas', icon: '🌐' };
     const selectedCount = this.catalog.filter(i => i.selected).length;
 
     this.bottomBarContent.innerHTML = `
@@ -967,9 +1047,10 @@ class ShoppinglistOneApp {
     });
 
     let html = '';
-    for (const catId of Object.keys(CATEGORIES)) {
+    const storeCats = getStoreCategories(this.currentStoreId);
+    for (const catId of Object.keys(storeCats)) {
       if (!grouped[catId] || grouped[catId].length === 0) continue;
-      const catData = CATEGORIES[catId];
+      const catData = storeCats[catId];
       const catItems = grouped[catId];
 
       html += `
@@ -993,14 +1074,18 @@ class ShoppinglistOneApp {
   renderCatalogItemRow(item) {
     const isSelected = item.selected;
     const formattedPrice = StorageManager.formatCurrency(item.price);
+    const storeInfo = item.storeId && STORES[item.storeId] ? STORES[item.storeId] : null;
+    const storeTagHTML = (this.currentStoreId === 'all' && storeInfo)
+      ? `<span class="store-badge-tag">${storeInfo.icon} ${storeInfo.name}</span>`
+      : '';
 
     return `
       <li class="catalog-item-row ${isSelected ? 'is-selected' : ''}">
         <div class="item-info">
-          <span class="item-name">${item.name}</span>
+          <span class="item-name">${item.name} ${storeTagHTML}</span>
           <div class="item-subtext">
             <span>${formattedPrice} / ${item.unit || 'unid'}</span>
-            <span class="edit-product-btn" onclick="app.openEditItemModal('${item.id}')" title="Editar o eliminar producto">
+            <span class="edit-product-btn" onclick="app.openEditItemModal('${item.id}', '${item.storeId || ''}')" title="Editar o eliminar producto">
               ✏️ Editar
             </span>
           </div>
@@ -1008,15 +1093,15 @@ class ShoppinglistOneApp {
 
         ${isSelected ? `
           <div class="qty-stepper">
-            <button class="stepper-btn" onclick="app.changeQuantity('${item.id}', -1)">-</button>
+            <button class="stepper-btn" onclick="app.changeQuantity('${item.id}', -1, '${item.storeId || ''}')">-</button>
             <span class="stepper-val">${item.quantity || 1}</span>
-            <button class="stepper-btn" onclick="app.changeQuantity('${item.id}', 1)">+</button>
+            <button class="stepper-btn" onclick="app.changeQuantity('${item.id}', 1, '${item.storeId || ''}')">+</button>
           </div>
-          <button class="select-btn" onclick="app.toggleItemSelection('${item.id}')">
+          <button class="select-btn" onclick="app.toggleItemSelection('${item.id}', '${item.storeId || ''}')">
             ✓ Agregado
           </button>
         ` : `
-          <button class="select-btn" onclick="app.toggleItemSelection('${item.id}')">
+          <button class="select-btn" onclick="app.toggleItemSelection('${item.id}', '${item.storeId || ''}')">
             + Añadir
           </button>
         `}
@@ -1025,21 +1110,21 @@ class ShoppinglistOneApp {
   }
 
   renderShoppingMode() {
-    const storeInfo = STORES[this.currentStoreId] || STORES.supermercado;
+    const storeInfo = STORES[this.currentStoreId] || { name: 'Todas las Tiendas', icon: '🌐' };
     const selectedItems = this.catalog.filter(i => i.selected);
 
     if (selectedItems.length > 0) {
       this.bottomBarContent.innerHTML = `
         <button class="btn-primary btn-success" onclick="app.finishShoppingTrip()">
           <span>✨</span>
-          <span>Finalizar Compra en ${storeInfo.name}</span>
+          <span>Finalizar Compra (${storeInfo.name})</span>
         </button>
       `;
     } else {
       this.bottomBarContent.innerHTML = `
         <button class="btn-primary" onclick="app.switchMode('catalog')">
           <span>📋</span>
-          <span>Ir al Catálogo de ${storeInfo.name}</span>
+          <span>Ir al Catálogo (${storeInfo.name})</span>
         </button>
       `;
     }
@@ -1053,8 +1138,8 @@ class ShoppinglistOneApp {
         <div class="empty-state">
           <span class="empty-icon">${storeInfo.icon}</span>
           <span class="empty-title">Lista de ${storeInfo.name} vacía</span>
-          <span class="empty-desc">Ve al <b>Catálogo de ${storeInfo.name}</b> y toca <b>"+ Añadir"</b> en lo que necesites comprar hoy.</span>
-          <button class="pill-btn active" style="margin-top: 10px;" onclick="app.switchMode('catalog')">Ir al Catálogo de ${storeInfo.name}</button>
+          <span class="empty-desc">Ve al <b>Catálogo</b> y toca <b>"+ Añadir"</b> en lo que necesites comprar hoy.</span>
+          <button class="pill-btn active" style="margin-top: 10px;" onclick="app.switchMode('catalog')">Ir al Catálogo</button>
         </div>
       `;
       return;
@@ -1068,9 +1153,10 @@ class ShoppinglistOneApp {
     });
 
     let html = '';
-    for (const catId of Object.keys(CATEGORIES)) {
+    const storeCats = getStoreCategories(this.currentStoreId);
+    for (const catId of Object.keys(storeCats)) {
       if (!grouped[catId] || grouped[catId].length === 0) continue;
-      const catData = CATEGORIES[catId];
+      const catData = storeCats[catId];
       const catItems = grouped[catId];
       const completedCount = catItems.filter(i => i.completed).length;
 
@@ -1094,10 +1180,14 @@ class ShoppinglistOneApp {
 
   renderShoppingItemRow(item) {
     const itemTotal = (item.price || 0) * (item.quantity || 1);
-    const subtext = `${item.quantity} ${item.unit || ''} • ${StorageManager.formatCurrency(itemTotal)}`;
+    const storeInfo = item.storeId && STORES[item.storeId] ? STORES[item.storeId] : null;
+    const storeTagHTML = storeInfo
+      ? `<span class="store-badge-tag">${storeInfo.icon} ${storeInfo.name}</span>`
+      : '';
+    const subtext = `${item.quantity} ${item.unit || ''} • ${StorageManager.formatCurrency(itemTotal)} ${storeTagHTML}`;
 
     return `
-      <li class="shopping-item-row ${item.completed ? 'completed' : ''}" onclick="app.toggleItemBought('${item.id}')">
+      <li class="shopping-item-row ${item.completed ? 'completed' : ''}" onclick="app.toggleItemBought('${item.id}', '${item.storeId || ''}')">
         <div class="shopping-checkbox">
           ${item.completed ? '✓' : ''}
         </div>
@@ -1105,7 +1195,7 @@ class ShoppinglistOneApp {
           <span class="item-name">${item.name}</span>
           <span class="item-subtext">${subtext}</span>
         </div>
-        <button class="btn-small" onclick="event.stopPropagation(); app.openEditItemModal('${item.id}')" title="Editar producto">✏️</button>
+        <button class="btn-small" onclick="event.stopPropagation(); app.openEditItemModal('${item.id}', '${item.storeId || ''}')" title="Editar producto">✏️</button>
       </li>
     `;
   }

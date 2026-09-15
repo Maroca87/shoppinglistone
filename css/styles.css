@@ -1392,3 +1392,18 @@ body {
   }
 }
 
+/* Store Badge Tag for Multi-Store Mixed Purchases */
+.store-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  line-height: 1;
+}
+

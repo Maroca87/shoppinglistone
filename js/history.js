@@ -32,7 +32,9 @@ const HistoryManager = {
   async addShoppingTrip(storeId, itemsBought, totalSpent) {
     const history = await this.loadHistory();
     const now = new Date();
-    const storeInfo = STORES[storeId] || STORES.supermercado;
+    const storeInfo = storeId === 'all' 
+      ? { id: 'all', name: 'Compra Multi-Tienda', icon: '🌐' }
+      : (STORES[storeId] || STORES.supermercado);
 
     const newTrip = {
       id: 'trip_' + Date.now().toString(36),
@@ -50,14 +52,20 @@ const HistoryManager = {
       }),
       totalSpent: totalSpent,
       itemCount: itemsBought.length,
-      items: itemsBought.map(i => ({
-        name: i.name,
-        category: i.category,
-        quantity: i.quantity,
-        unit: i.unit,
-        price: i.price,
-        subtotal: (i.price || 0) * (i.quantity || 1)
-      }))
+      items: itemsBought.map(i => {
+        const itemStore = i.storeId && STORES[i.storeId] ? STORES[i.storeId] : null;
+        return {
+          name: i.name,
+          category: i.category,
+          quantity: i.quantity,
+          unit: i.unit,
+          price: i.price,
+          subtotal: (i.price || 0) * (i.quantity || 1),
+          storeId: i.storeId || storeId,
+          storeName: itemStore ? itemStore.name : (storeInfo ? storeInfo.name : 'Tienda'),
+          storeIcon: itemStore ? itemStore.icon : (storeInfo ? storeInfo.icon : '🛒')
+        };
+      })
     };
 
     history.unshift(newTrip);
@@ -123,7 +131,8 @@ const HistoryManager = {
             ? item.subtotal 
             : ((item.price || 0) * (item.quantity || 1));
           const formattedSubtotal = StorageManager.formatCurrency(itemSubtotal);
-          text += `• ${item.name} (${qty}) - ${formattedSubtotal}\n`;
+          const storeTag = (trip.storeId === 'all' && item.storeName) ? ` [${item.storeIcon || '🏬'} ${item.storeName}]` : '';
+          text += `• ${item.name}${storeTag} (${qty}) - ${formattedSubtotal}\n`;
         });
       } else {
         text += `• (Sin detalle de productos)\n`;

@@ -235,6 +235,56 @@ const StorageManager = {
     return updated;
   },
 
+  /**
+   * Carga los catálogos de TODAS las tiendas (predeterminadas y personalizadas).
+   * @returns {Promise<Object>} Mapa de storeId -> lista de productos con su storeId.
+   */
+  async loadAllCatalogs() {
+    const customStores = await this.loadCustomStores();
+    const allStores = { ...DEFAULT_STORES, ...customStores };
+    const result = {};
+    for (const sId of Object.keys(allStores)) {
+      const catalog = await this.loadCatalog(sId);
+      result[sId] = catalog.map(item => ({ ...item, storeId: sId }));
+    }
+    return result;
+  },
+
+  /**
+   * Obtiene todos los productos seleccionados (selected: true) de TODAS las tiendas.
+   * @returns {Promise<Array>} Lista de productos seleccionados en cualquier tienda.
+   */
+  async getAllSelectedItems() {
+    const allCatalogs = await this.loadAllCatalogs();
+    const selected = [];
+    for (const [sId, items] of Object.entries(allCatalogs)) {
+      items.forEach(item => {
+        if (item.selected) {
+          selected.push({ ...item, storeId: sId });
+        }
+      });
+    }
+    return selected;
+  },
+
+  /**
+   * Reinicia el estado de compra (completed y selected) en TODAS las tiendas.
+   * @param {boolean} keepSelected - Si se mantienen los productos seleccionados.
+   */
+  async resetAllShoppingTrips(keepSelected = false) {
+    const customStores = await this.loadCustomStores();
+    const allStores = { ...DEFAULT_STORES, ...customStores };
+    for (const sId of Object.keys(allStores)) {
+      const catalog = await this.loadCatalog(sId);
+      const updated = catalog.map(item => ({
+        ...item,
+        completed: false,
+        selected: keepSelected ? item.selected : false
+      }));
+      await this.saveCatalog(sId, updated);
+    }
+  },
+
   // ==========================================
   // XML BACKUP & RESTORE MODULE (MÓDULO DE RESPALDOS XML)
   // ==========================================
@@ -508,7 +558,9 @@ const StorageManager = {
    * @returns {string} Texto formateado.
    */
   exportToText(storeId, catalog) {
-    const storeInfo = STORES[storeId] || STORES.supermercado;
+    const storeInfo = storeId === 'all'
+      ? { name: 'Todas las Tiendas (Multi-Tienda)', icon: '🌐' }
+      : (STORES[storeId] || STORES.supermercado);
     const selectedItems = catalog.filter(i => i.selected);
     if (selectedItems.length === 0) return `No tienes productos seleccionados en ${storeInfo.name}.`;
 
@@ -530,7 +582,10 @@ const StorageManager = {
         const check = item.completed ? '✅' : '◻️';
         const qty = item.quantity ? ` (${item.quantity} ${item.unit || ''})` : '';
         const price = item.price ? ` - ${StorageManager.formatCurrency(item.price * item.quantity)}` : '';
-        text += `${check} ${item.name}${qty}${price}\n`;
+        const itemStoreTag = (storeId === 'all' && item.storeId && STORES[item.storeId])
+          ? ` [${STORES[item.storeId].icon} ${STORES[item.storeId].name}]`
+          : '';
+        text += `${check} ${item.name}${itemStoreTag}${qty}${price}\n`;
       });
       text += '\n';
     }
